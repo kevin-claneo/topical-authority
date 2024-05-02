@@ -10,7 +10,8 @@ from streamlit_elements import Elements
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 import pandas as pd
-import searchconsole#from stqdm import stqdm
+import searchconsole
+from stqdm import stqdm
 import nltk
 from nltk.corpus import stopwords
 nltk.download('stopwords')
@@ -346,11 +347,8 @@ def show_fetch_data_button(webproperty, search_type, start_date, end_date, selec
 # ---------------------------
 # Entity Extraction Functions
 # ---------------------------
+    
 
-def extract_topics(queries, num_topics, temperature):
-    topic_generator = EntityGenerator(llm)
-    topics = topic_generator.generate_entities(" ".join(queries), {}, num_topics, temperature)
-    return topics
 
 def extract_main_queries(df, min_clicks):
     """
@@ -362,6 +360,10 @@ def extract_main_queries(df, min_clicks):
     main_queries_df.columns = ['URL', 'Main Query']
     return main_queries_df
 
+def extract_topics(queries, num_topics, temperature):
+    topic_generator = EntityGenerator(llm)
+    topics = topic_generator.generate_entities(" ".join(queries), {}, num_topics, temperature)
+    return topics
 class LLMCaller:
     @staticmethod
     def make_llm_call(args):

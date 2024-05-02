@@ -17,7 +17,7 @@ from nltk.corpus import stopwords
 nltk.download('stopwords')
 
 # Local imports
-import pydot
+import pyvis.network as net
 from langchain_core.prompts import PromptTemplate
 from langchain.chains import LLMChain
 from langchain_anthropic import ChatAnthropic
@@ -751,14 +751,13 @@ def perform_semantic_research(topic, num_entities, num_relationships):
         print(f"An error occurred: {e}")
         return None, None, None
 
+def calculate_centrality_scores(G):
+    pagerank_scores = nx.pagerank(G)
+    betweenness_scores = nx.betweenness_centrality(G)
+    closeness_scores = nx.closeness_centrality(G)
+    return pagerank_scores, betweenness_scores, closeness_scores
 
-
-def visualize_semantic_map(semantic_map: Dict[str, Set]):
-    """
-    Visualizes the semantic map using NetworkX and Graphviz via Streamlit's graphviz_chart.
-    Args:
-        semantic_map (Dict[str, Set]): A dictionary containing the generated entities and relationships.
-    """
+def visualize_semantic_map(semantic_map, content_hierarchy_template):
     G = nx.Graph()
     for entity_id, entity_label in semantic_map["entities"].items():
         G.add_node(entity_id, label=entity_label)
@@ -780,12 +779,46 @@ def visualize_semantic_map(semantic_map: Dict[str, Set]):
     for edge in G.edges():
         G.edges[edge]['label'] = G.edges[edge]['label']
     
-    # Convert NetworkX graph to DOT format
-    dot_string = nx.nx_pydot.to_pydot(G).to_string()
+    # Calculate centrality scores
+    pagerank_scores, betweenness_scores, closeness_scores = calculate_centrality_scores(G)
     
-    # Use Streamlit's graphviz_chart to visualize the graph
-    st.graphviz_chart(dot_string)
-
+    # Map entities to pillars based on PageRank scores
+    for pillar in content_hierarchy_template["Pillars"]:
+        pillar["entities"] = [entity for entity, score in pagerank_scores.items() if score >= 0.01]  # Adjust the threshold as needed
+    
+    # Map entities to clusters based on betweenness centrality scores
+    for cluster in content_hierarchy_template["Clusters"]:
+        cluster["entities"] = [entity for entity, score in betweenness_scores.items() if score >= 0.01]  # Adjust the threshold as needed
+    
+    # Map entities to spokes based on closeness centrality scores
+    for spoke in content_hierarchy_template["Spokes"]:
+        spoke["entities"] = [entity for entity, score in closeness_scores.items() if score >= 0.01]  # Adjust the threshold as needed
+    
+    # Create a pyvis network
+    pyvis_graph = net.Network(notebook=True, cdn_resources="in_line")
+    
+    # Add nodes to the pyvis network
+    for node_id, node_data in G.nodes(data=True):
+        pyvis_graph.add_node(node_id, label=node_data['label'], title=node_data['label'], group=node_data['community'])
+    
+    # Add edges to the pyvis network
+    for source, target, edge_data in G.edges(data=True):
+        pyvis_graph.add_edge(source, target, title=edge_data['label'])
+    
+    # Customize the pyvis network layout and appearance
+    pyvis_graph.barnes_hut(overlap=0.5, spring_length=200)
+    pyvis_graph.show_buttons(filter_=['physics'])
+    
+    # Save the pyvis network as an HTML file
+    pyvis_graph.show("semantic_map.html")
+    
+    # Display the HTML file in Streamlit
+    with open("semantic_map.html", "r", encoding="utf-8") as file:
+        html_content = file.read()
+    st.components.v1.html(html_content, height=600)
+    
+    # Display the updated content hierarchy template
+    st.json(content_hierarchy_template)
 # -------------
 # Main Streamlit App Function
 # -------------

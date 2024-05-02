@@ -185,15 +185,12 @@ def list_gsc_properties(credentials):
     return [site['siteUrl'] for site in site_list.get('siteEntry', [])] or ["No properties found"]
 
 
-def fetch_gsc_data(webproperty, search_type, start_date, end_date, dimensions, device_type=None):
+def fetch_gsc_data(webproperty, search_type, start_date, end_date, dimensions, device_type=None, min_clicks):
     """
     Fetches Google Search Console data for a specified property, date range, dimensions, and device type.
     Handles errors and returns the data as a DataFrame.
     """
     query = webproperty.query.range(start_date, end_date).search_type(search_type).dimension(*dimensions)
-
-    if 'device' in dimensions and device_type and device_type != 'All Devices':
-        query = query.filter('device', 'equals', device_type.lower())
 
     try:
         return query.limit(MAX_ROWS).get().to_dataframe()
@@ -202,13 +199,13 @@ def fetch_gsc_data(webproperty, search_type, start_date, end_date, dimensions, d
         return pd.DataFrame()
 
 
-def fetch_data_loading(webproperty, search_type, start_date, end_date, dimensions, device_type=None):
+def fetch_data_loading(webproperty, search_type, start_date, end_date, dimensions, device_type=None, min_clicks):
     """
     Fetches Google Search Console data with a loading indicator. Utilises 'fetch_gsc_data' for data retrieval.
     Returns the fetched data as a DataFrame.
     """
     with st.spinner('Fetching data...'):
-        return fetch_gsc_data(webproperty, search_type, start_date, end_date, dimensions, device_type)
+        return fetch_gsc_data(webproperty, search_type, start_date, end_date, dimensions, device_type, min_clicks)
 
 
 # -------------
@@ -328,13 +325,13 @@ def show_min_clicks_input():
     return min_clicks
 
 
-def show_fetch_data_button(webproperty, search_type, start_date, end_date, selected_dimensions):
+def show_fetch_data_button(webproperty, search_type, start_date, end_date, selected_dimensions, min_clicks):
     """
     Displays a button to fetch data based on selected parameters.
     Shows the report DataFrame and download link upon successful data fetching.
     """
     if st.button("Fetch Data"):
-        report = fetch_data_loading(webproperty, search_type, start_date, end_date, selected_dimensions)
+        report = fetch_data_loading(webproperty, search_type, start_date, end_date, selected_dimensions, min_clicks)
         if report is not None:
             st.session_state.fetched_data = report  # Store in session state
             main_queries_df = extract_main_queries(report, min_clicks)
@@ -723,7 +720,7 @@ def main():
             start_date, end_date = calc_date_range(date_range_selection)
             selected_dimensions = DIMENSIONS
             min_clicks = show_min_clicks_input()
-            show_fetch_data_button(webproperty, search_type, start_date, end_date, selected_dimensions)
+            show_fetch_data_button(webproperty, search_type, start_date, end_date, selected_dimensions, min_clicks)
             if 'main_queries_df' in st.session_state and st.session_state.main_queries_df is not None:
                 main_queries_df = st.session_state.main_queries_df
                 main_queries = main_queries_df['Main Query'].tolist()

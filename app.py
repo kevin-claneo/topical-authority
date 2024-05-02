@@ -336,7 +336,7 @@ def show_fetch_data_button(webproperty, search_type, start_date, end_date, selec
     Shows the report DataFrame and download link upon successful data fetching.
     """
     if st.button("Fetch Data"):
-        report = fetch_data_loading(webproperty, search_type, start_date, end_date, selected_dimensions, min_clicks)
+        report = fetch_data_loading(webproperty, search_type, start_date, end_date, dimensions, min_clicks)
         if report is not None:
             st.session_state.fetched_data = report  # Store in session state
             main_queries_df = extract_main_queries(report, min_clicks)

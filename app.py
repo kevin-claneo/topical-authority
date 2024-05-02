@@ -90,6 +90,8 @@ def init_session_state():
         st.session_state.selected_dimensions = ['page', 'query']
     if 'selected_device' not in st.session_state:
         st.session_state.selected_device = 'All Devices'
+    if 'selected_min_clicks' not in st.session_state:
+        st.session_state.selected_min_clicks = 100
 
 
 # -------------
@@ -316,6 +318,14 @@ def show_date_range_selector():
         key='date_range_selector'
     )
 
+def show_min_clicks_input():
+    """
+    Displays a number input for specifying the minimum number of clicks.
+    Updates the session state with the selected value.
+    """
+    min_clicks = st.number_input("Minimum Number of Clicks:", min_value=0, value=st.session_state.selected_min_clicks)
+    st.session_state.selected_min_clicks = min_clicks
+    return min_clicks
 
 
 def show_fetch_data_button(webproperty, search_type, start_date, end_date, selected_dimensions):
@@ -712,6 +722,7 @@ def main():
             date_range_selection = show_date_range_selector()
             start_date, end_date = calc_date_range(date_range_selection)
             selected_dimensions = DIMENSIONS
+            min_clicks = show_min_clicks_input()
             show_fetch_data_button(webproperty, search_type, start_date, end_date, selected_dimensions)
             if 'main_queries_df' in st.session_state and st.session_state.main_queries_df is not None:
                 main_queries_df = st.session_state.main_queries_df

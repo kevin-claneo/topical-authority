@@ -32,7 +32,7 @@ import spacy
 from spacy_entity_linker import EntityLinker
 
 # Configuration: Set to True if running locally, False if running on Streamlit Cloud
-IS_LOCAL = True
+IS_LOCAL = False
 
 # Constants
 SEARCH_TYPES = ["web", "image", "video", "news", "discover", "googleNews"]

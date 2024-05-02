@@ -27,4 +27,4 @@ google_auth_oauthlib
 google-api-python-client
 searchconsole
 plotly
-pydot
+pyvis.network

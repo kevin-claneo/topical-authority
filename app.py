@@ -661,22 +661,11 @@ def visualize_semantic_map(semantic_map: Dict[str, Set]):
     for edge in G.edges():
         G.edges[edge]['label'] = G.edges[edge]['label']
     
-    # Convert NetworkX graph to PyDot, then to DOT format
-    pydot_graph = to_pydot(G)
-    
-    # Set node attributes for style based on community
-    for node in pydot_graph.get_nodes():
-        node.set_style('filled')
-        node.set_fillcolor(f'/{node.get_attributes()["community"]}')
-    
-    # Set edge attributes for label
-    for edge in pydot_graph.get_edges():
-        edge.set_label(edge.get_attributes()['label'])
-    
-    dot_string = pydot_graph.to_string()
+    # Convert NetworkX graph to DOT format
+    dot_string = nx.nx_pydot.to_pydot(G).to_string()
     
     # Use Streamlit's graphviz_chart to visualize the graph
-    st.graphviz_chart(dot_string)
+    st.graphviz_chart(dot_string
 
 # -------------
 # Main Streamlit App Function

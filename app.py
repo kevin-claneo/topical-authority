@@ -17,6 +17,7 @@ from nltk.corpus import stopwords
 nltk.download('stopwords')
 
 # Local imports
+import pydot
 from langchain_core.prompts import PromptTemplate
 from langchain.chains import LLMChain
 from langchain_anthropic import ChatAnthropic

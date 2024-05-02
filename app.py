@@ -634,6 +634,124 @@ def merge_similar_nodes(G, similarity_threshold=0.8):
     return G
 
 
+def perform_semantic_research(topic, num_entities, num_relationships):
+    """
+    Performs semantic research on the given topic.
+    Args:
+        topic (str): The topic for which to perform semantic research.
+        num_entities (int): The number of entities to generate.
+        num_relationships (int): The number of relationships to generate.
+    Returns:
+        tuple: A tuple containing the nodes DataFrame, edges DataFrame, and results DataFrame.
+    """
+    print(topic)
+    # Define default values
+    try:
+        num_iterations = 1
+        num_parallel_runs = 10
+        num_entities_per_run = num_entities
+        temperature = 0.5
+        relationship_batch_size = num_relationships
+        model_name = 'claude-3-haiku-20240307'  # Using the Haiku model by default
+
+        # Initialize LLM without passing the api_key
+        llm = ChatAnthropic(temperature=0.2, model_name=model_name, max_tokens=1000)
+
+        status_text = st.empty()
+        # Generate semantic map
+        entity_generator = EntityGenerator(llm)
+        relationship_generator = RelationshipGenerator(llm)
+        semantic_map_generator = SemanticMapGenerator(entity_generator, relationship_generator)
+        with st.spinner("Generating semantic map..."):
+            entities_placeholder = st.empty()
+            relationships_placeholder = st.empty()
+            entities_count = 0
+            relationships_count = 0
+            for iteration in range(num_iterations):
+                # Parallel entity generation
+                with concurrent.futures.ThreadPoolExecutor(max_workers=num_parallel_runs) as executor:
+                    futures = []
+                    for _ in range(num_parallel_runs):
+                        future = executor.submit(entity_generator.generate_entities, topic, semantic_map_generator.entities, num_entities_per_run, temperature)
+                        futures.append(future)
+                    new_entities = {}
+                    for future in concurrent.futures.as_completed(futures):
+                        print(new_entities)
+                        new_entities.update(future.result())
+                # Deduplicate entities
+                semantic_map_generator.entities.update(new_entities)
+                entities_count += len(new_entities)
+                entities_placeholder.metric("Total Entities", entities_count)
+                # Parallel relationship generation
+                new_relationships = relationship_generator.generate_relationships(topic, semantic_map_generator.entities, semantic_map_generator.relationships, relationship_batch_size, num_parallel_runs)
+                semantic_map_generator.relationships.update(new_relationships)
+                relationships_count += len(new_relationships)
+                relationships_placeholder.metric("Total Relationships", relationships_count)
+        status_text.text("Semantic map generated.")
+        # Save semantic map to CSV
+        save_semantic_map_to_csv({"entities": semantic_map_generator.entities, "relationships": semantic_map_generator.relationships}, topic)
+        status_text.text("Semantic map saved to CSV.")
+        # Load the CSV files into DataFrames
+        nodes_df = pd.read_csv(f"{topic}_entities.csv")
+        edges_df = pd.read_csv(f"{topic}_relationships.csv")
+        # Create a directed graph using NetworkX
+        G = nx.DiGraph()
+        # Add nodes to the graph
+        for _, row in nodes_df.iterrows():
+            G.add_node(row['Id'], label=row['Label'])
+        # Add edges to the graph
+        for _, row in edges_df.iterrows():
+            G.add_edge(row['Source'], row['Target'], label=row['Type'])
+        # Merge similar nodes
+        G = merge_similar_nodes(G, similarity_threshold=0.7)
+        with st.spinner("Calculating graph metrics..."):
+            pagerank = nx.pagerank(G)
+            time.sleep(0.1)  # Simulate progress
+            betweenness_centrality = nx.betweenness_centrality(G)
+            time.sleep(0.1)  # Simulate progress
+            closeness_centrality = nx.closeness_centrality(G)
+            time.sleep(0.1)  # Simulate progress
+            eigenvector_centrality = nx.eigenvector_centrality_numpy(G)
+            time.sleep(0.1)  # Simulate progress
+            status_text.text("Graph metrics calculated.")
+        # Perform community detection using Louvain algorithm
+        undirected_G = G.to_undirected()
+        partition = community_louvain.best_partition(undirected_G)
+        # Calculate personalized PageRank for each pillar topic
+        personalized_pagerank = {}
+        for node in G.nodes():
+            if G.nodes[node]['label'].startswith('Pillar:'):
+                personalized_pagerank[node] = nx.pagerank(G, personalization={node: 1})
+
+        # Create a DataFrame to store the results
+        results_df = pd.DataFrame(columns=['Node', 'Label', 'PageRank', 'Betweenness Centrality', 'Closeness Centrality',
+                                           'Eigenvector Centrality', 'Community', 'Personalized PageRank'])
+        # Populate the DataFrame with the results
+        for node in G.nodes():
+            node_label = G.nodes[node]['label']
+            community = partition[node]
+            personalized_scores = {pillar: scores[node] for pillar, scores in personalized_pagerank.items()}
+            new_row = pd.DataFrame({
+                'Node': [node],
+                'Label': [node_label],
+                'PageRank': [pagerank[node]],
+                'Betweenness Centrality': [betweenness_centrality[node]],
+                'Closeness Centrality': [closeness_centrality[node]],
+                'Eigenvector Centrality': [eigenvector_centrality[node]],
+                'Community': [community],
+                'Personalized PageRank': [personalized_scores]
+            })
+            results_df = pd.concat([results_df, new_row], ignore_index=True, sort=False)  # Updated to suppress FutureWarning
+        # Sort the DataFrame by PageRank in descending order
+        results_df = results_df.sort_values('PageRank', ascending=False)
+        status_text.text("Results DataFrame created.")
+        return nodes_df, edges_df, results_df
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None, None, None
+
+
+
 def visualize_semantic_map(semantic_map: Dict[str, Set]):
     """
     Visualizes the semantic map using NetworkX and Graphviz via Streamlit's graphviz_chart.

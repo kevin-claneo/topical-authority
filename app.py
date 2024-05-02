@@ -11,7 +11,7 @@ import pandas as pd
 import searchconsole
 
 # Constants
-SEARCH_TYPES = ["web"]
+SEARCH_TYPE = "web"
 DATE_RANGE_OPTIONS = [
     "Last 7 Days",
     "Last 30 Days",
@@ -21,7 +21,7 @@ DATE_RANGE_OPTIONS = [
     "Last 16 Months",
 ]
 DEVICE_OPTIONS = ["All Devices", "desktop", "mobile", "tablet"]
-BASE_DIMENSIONS = ["page", "query", "country", "date"]
+DIMENSIONS = ["page", "query"]
 MAX_ROWS = 250_000
 DF_PREVIEW_ROWS = 100
 
@@ -195,13 +195,6 @@ def fetch_data_loading(webproperty, search_type, start_date, end_date, dimension
 # Utility Functions
 # -------------
 
-def update_dimensions(selected_search_type):
-    """
-    Updates and returns the list of dimensions based on the selected search type.
-    Adds 'device' to dimensions if the search type requires it.
-    """
-    return BASE_DIMENSIONS + ['device'] if selected_search_type in SEARCH_TYPES else BASE_DIMENSIONS
-
 
 def calc_date_range(selection):
     """
@@ -292,18 +285,6 @@ def show_property_selector(properties, account):
     return account[selected_property]
 
 
-def show_search_type_selector():
-    """
-    Displays a dropdown selector for choosing the search type.
-    Returns the selected search type.
-    """
-    return st.selectbox(
-        "Select Search Type:",
-        SEARCH_TYPES,
-        index=SEARCH_TYPES.index(st.session_state.selected_search_type),
-        key='search_type_selector'
-    )
-
 
 def show_date_range_selector():
     """
@@ -317,19 +298,6 @@ def show_date_range_selector():
         key='date_range_selector'
     )
 
-
-def show_dimensions_selector(search_type):
-    """
-    Displays a multi-select box for choosing dimensions based on the selected search type.
-    Returns the selected dimensions.
-    """
-    available_dimensions = update_dimensions(search_type)
-    return st.multiselect(
-        "Select Dimensions:",
-        available_dimensions,
-        default=st.session_state.selected_dimensions,
-        key='dimensions_selector'
-    )
 
 
 def show_fetch_data_button(webproperty, search_type, start_date, end_date, selected_dimensions):
@@ -374,10 +342,10 @@ def main():
 
         if properties:
             webproperty = show_property_selector(properties, account)
-            search_type = show_search_type_selector()
+            search_type = SEARCH_TYPE
             date_range_selection = show_date_range_selector()
             start_date, end_date = calc_date_range(date_range_selection)
-            selected_dimensions = show_dimensions_selector(search_type)
+            selected_dimensions = DIMENSIONS
             show_fetch_data_button(webproperty, search_type, start_date, end_date, selected_dimensions)
 
 

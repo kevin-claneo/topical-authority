@@ -10,12 +10,8 @@ from googleapiclient.discovery import build
 import pandas as pd
 import searchconsole
 
-# Configuration: Set to True if running locally, False if running on Streamlit Cloud
-# IS_LOCAL = True
-IS_LOCAL = False
-
 # Constants
-SEARCH_TYPES = ["web", "image", "video", "news", "discover", "googleNews"]
+SEARCH_TYPES = ["web"]
 DATE_RANGE_OPTIONS = [
     "Last 7 Days",
     "Last 30 Days",
@@ -29,30 +25,37 @@ BASE_DIMENSIONS = ["page", "query", "country", "date"]
 MAX_ROWS = 250_000
 DF_PREVIEW_ROWS = 100
 
+# Define models
+Opus = "claude-3-opus-20240229"
+Sonnet = "claude-3-sonnet-20240229"
+Haiku = "claude-3-haiku-20240307"
 
 # -------------
 # Streamlit App Configuration
 # -------------
 
+# Streamlit App Configuration
 def setup_streamlit():
     """
     Configures Streamlit's page settings and displays the app title and markdown information.
     Sets the page layout, title, and markdown content with links and app description.
     """
-    st.set_page_config(page_title="✨ Simple Google Search Console Data | LeeFoot.co.uk", layout="wide")
-    st.title("✨ Simple Google Search Console Data | Dec 23")
-    st.markdown(f"### Lightweight GSC Data Extractor. (Max {MAX_ROWS:,} Rows)")
-
-    st.markdown(
-        """
-        <p>
-            Created by <a href="https://twitter.com/LeeFootSEO" target="_blank">LeeFootSEO</a> |
-            <a href="https://leefoot.co.uk" target="_blank">More Apps & Scripts on my Website</a>
-        """,
-        unsafe_allow_html=True
+    st.set_page_config(
+        page_title="Semantic Sitemap Generator with Topical Authority",
+        page_icon=":weight_lifter:",
+        layout="wide",
+        initial_sidebar_state="expanded",
+        menu_items={
+            'Get Help': 'https://www.linkedin.com/in/kirchhoff-kevin/',
+            'About': "This is an app for generating semantic sitemaps and analyzing topical authority! Adapted from Lee Foot's GSC-connector check out his apps: https://leefoot.co.uk"
+        }
     )
+    st.image("https://www.claneo.com/wp-content/uploads/Element-4.svg", width=600, use_column_width=None, clamp=False, channels="RGB", output_format="auto")
+    st.caption(":point_right: Join Claneo and support exciting clients as part of the Consulting team") 
+    st.caption(':bulb: Make sure to mention that *Kevin* brought this job posting to your attention')
+    st.link_button("Learn More", "https://www.claneo.com/en/career/#:~:text=Consulting")
+    st.title("Semantic Sitemap Generator with Topical Authority Analysis")
     st.divider()
-
 
 def init_session_state():
     """
@@ -64,7 +67,7 @@ def init_session_state():
     if 'selected_search_type' not in st.session_state:
         st.session_state.selected_search_type = 'web'
     if 'selected_date_range' not in st.session_state:
-        st.session_state.selected_date_range = 'Last 7 Days'
+        st.session_state.selected_date_range = 'Last 6 Months'
     if 'selected_dimensions' not in st.session_state:
         st.session_state.selected_dimensions = ['page', 'query']
     if 'selected_device' not in st.session_state:
@@ -135,6 +138,20 @@ def auth_search_console(client_config, credentials):
     }
     return searchconsole.authenticate(client_config=client_config, credentials=token)
 
+def extract_topics(queries, num_topics, temperature):
+    topic_generator = EntityGenerator(llm)
+    topics = topic_generator.generate_entities(" ".join(queries), {}, num_topics, temperature)
+    return topics
+
+def extract_main_queries(df, min_clicks):
+    """
+    Extracts the main queries for each URL where the main keyword is in the top 5 positions and generates a minimum amount of traffic.
+    Returns a DataFrame with the extracted main queries and their corresponding URLs.
+    """
+    main_queries_df = df[(df['position'] <= 5) & (df['clicks'] >= min_clicks)][['page', 'query']]
+    main_queries_df = main_queries_df.groupby('page').agg({'query': lambda x: x.iloc[0]}).reset_index()
+    main_queries_df.columns = ['URL', 'Main Query']
+    return main_queries_df
 
 # -------------
 # Data Fetching Functions
@@ -344,7 +361,7 @@ def main():
     client_config = load_config()
     st.session_state.auth_flow, st.session_state.auth_url = google_auth(client_config)
 
-    query_params = st.experimental_get_query_params()
+    query_params = st.experimental_getst.query_params.get_all()
     auth_code = query_params.get("code", [None])[0]
 
     if auth_code and not st.session_state.get('credentials'):

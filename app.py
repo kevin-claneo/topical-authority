@@ -735,6 +735,7 @@ def main():
                 temperature = 0.7  # Specify the temperature for topic generation
                 ANTHROPIC_API_KEY = st.sidebar.text_input("Anthropic API Key", type="password", help="Your Anthropic API key to authenticate and access the language model.")
                 model_name = Sonnet
+                llm = ChatAnthropic(temperature=0.2, model_name=model_name, max_tokens=1000, api_key=ANTHROPIC_API_KEY)
                 topics = extract_topics(main_queries, num_topics, temperature)
                 
                 # Generate relationships between the topics

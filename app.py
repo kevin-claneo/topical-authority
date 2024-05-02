@@ -204,7 +204,7 @@ def fetch_gsc_data(webproperty, search_type, start_date, end_date, dimensions, m
         return pd.DataFrame()
 
 
-def fetch_data_loading(webproperty, search_type, start_date, end_date, selected_dimensions, min_clicks, device_type=None):
+def fetch_data_loading(webproperty, search_type, start_date, end_date, dimensions, min_clicks, device_type=None):
     """
     Fetches Google Search Console data with a loading indicator. Utilises 'fetch_gsc_data' for data retrieval.
     Returns the fetched data as a DataFrame.

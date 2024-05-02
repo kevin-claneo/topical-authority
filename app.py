@@ -193,7 +193,12 @@ def fetch_gsc_data(webproperty, search_type, start_date, end_date, dimensions, d
     query = webproperty.query.range(start_date, end_date).search_type(search_type).dimension(*dimensions)
 
     try:
-        return query.limit(MAX_ROWS).get().to_dataframe()
+        df = query.limit(MAX_ROWS).get().to_dataframe()
+        if 'clicks' in df.columns and 'position' in df.columns:
+            df = df[df['clicks'] >= min_clicks]
+        else:
+            show_error("Columns 'clicks' or 'position' not in DataFrame")
+        return df
     except Exception as e:
         show_error(e)
         return pd.DataFrame()

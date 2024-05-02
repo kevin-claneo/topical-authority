@@ -156,7 +156,7 @@ def auth_search_console(client_config, credentials):
     }
     return searchconsole.authenticate(client_config=client_config, credentials=token)
 
-def extract_topics(queries, num_topics, temperature):
+def extract_topics(llm, queries, num_topics, temperature):
     topic_generator = EntityGenerator(llm)
     topics = topic_generator.generate_entities(" ".join(queries), {}, num_topics, temperature)
     return topics
@@ -736,7 +736,7 @@ def main():
                 ANTHROPIC_API_KEY = st.sidebar.text_input("Anthropic API Key", type="password", help="Your Anthropic API key to authenticate and access the language model.")
                 model_name = Sonnet
                 llm = ChatAnthropic(temperature=0.2, model_name=model_name, max_tokens=1000, api_key=ANTHROPIC_API_KEY)
-                topics = extract_topics(main_queries, num_topics, temperature)
+                topics = extract_topics(llm, main_queries, num_topics, temperature)
                 
                 # Generate relationships between the topics
                 relationship_generator = RelationshipGenerator(llm)

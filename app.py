@@ -665,7 +665,7 @@ def visualize_semantic_map(semantic_map: Dict[str, Set]):
     dot_string = nx.nx_pydot.to_pydot(G).to_string()
     
     # Use Streamlit's graphviz_chart to visualize the graph
-    st.graphviz_chart(dot_string
+    st.graphviz_chart(dot_string)
 
 # -------------
 # Main Streamlit App Function

@@ -5,7 +5,7 @@ import concurrent.futures
 import time
 
 # Related third-party imports
-import streamlit as st
+from pyvis import pyvis.network as net
 from streamlit_elements import Elements
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build

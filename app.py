@@ -721,20 +721,21 @@ def main():
                 num_topics = 10  # Specify the desired number of topics
                 temperature = 0.7  # Specify the temperature for topic generation
                 ANTHROPIC_API_KEY = st.text_input("Anthropic API Key", type="password", help="Your Anthropic API key to authenticate and access the language model.")
-                model_name = Sonnet
-                llm = ChatAnthropic(temperature=0.2, model_name=model_name, max_tokens=1000, api_key=ANTHROPIC_API_KEY)
-                topics = extract_topics(llm, main_queries, num_topics, temperature)
-                
-                # Generate relationships between the topics
-                relationship_generator = RelationshipGenerator(llm)
-                relationships = relationship_generator.generate_relationships(" ".join(main_queries), topics, set(), 5, 2)
-                
-                # Create a semantic map based on the topics and relationships
-                semantic_map_generator = SemanticMapGenerator(None, relationship_generator)
-                semantic_map = {"entities": topics, "relationships": relationships}
-                
-                # Display the semantic map interactively
-                visualize_semantic_map(semantic_map)
+                if ANTHROPIC_API_KEY:
+                    model_name = Sonnet
+                    llm = ChatAnthropic(temperature=0.2, model_name=model_name, max_tokens=1000, api_key=ANTHROPIC_API_KEY)
+                    topics = extract_topics(llm, main_queries, num_topics, temperature)
+                    
+                    # Generate relationships between the topics
+                    relationship_generator = RelationshipGenerator(llm)
+                    relationships = relationship_generator.generate_relationships(" ".join(main_queries), topics, set(), 5, 2)
+                    
+                    # Create a semantic map based on the topics and relationships
+                    semantic_map_generator = SemanticMapGenerator(None, relationship_generator)
+                    semantic_map = {"entities": topics, "relationships": relationships}
+                    
+                    # Display the semantic map interactively
+                    visualize_semantic_map(semantic_map)
 
 
 if __name__ == "__main__":

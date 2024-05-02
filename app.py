@@ -185,7 +185,7 @@ def list_gsc_properties(credentials):
     return [site['siteUrl'] for site in site_list.get('siteEntry', [])] or ["No properties found"]
 
 
-def fetch_gsc_data(webproperty, search_type, start_date, end_date, dimensions, min_clicksdevice_type=None):
+def fetch_gsc_data(webproperty, search_type, start_date, end_date, dimensions, min_clicks, device_type=None):
     """
     Fetches Google Search Console data for a specified property, date range, dimensions, and device type.
     Handles errors and returns the data as a DataFrame.

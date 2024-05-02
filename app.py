@@ -209,7 +209,7 @@ def fetch_data_loading(webproperty, search_type, start_date, end_date, dimension
     Fetches Google Search Console data with a loading indicator. Utilises 'fetch_gsc_data' for data retrieval.
     Returns the fetched data as a DataFrame.
     """
-    with st.spinner('Fetching data...'):
+    with st.sidebar.spinner('Fetching data...'):
         return fetch_gsc_data(webproperty, search_type, start_date, end_date, dimensions, device_type, min_clicks)
 
 
@@ -313,7 +313,7 @@ def show_date_range_selector():
     Displays a dropdown selector for choosing the date range.
     Returns the selected date range option.
     """
-    return st.selectbox(
+    return st.sidebar.selectbox(
         "Select Date Range:",
         DATE_RANGE_OPTIONS,
         index=DATE_RANGE_OPTIONS.index(st.session_state.selected_date_range),
@@ -325,7 +325,7 @@ def show_min_clicks_input():
     Displays a number input for specifying the minimum number of clicks.
     Updates the session state with the selected value.
     """
-    min_clicks = st.number_input("Minimum Number of Clicks:", min_value=0, value=st.session_state.selected_min_clicks)
+    min_clicks = st.sidebar.number_input("Minimum Number of Clicks:", min_value=0, value=st.session_state.selected_min_clicks)
     st.session_state.selected_min_clicks = min_clicks
     return min_clicks
 
@@ -335,7 +335,7 @@ def show_fetch_data_button(webproperty, search_type, start_date, end_date, selec
     Displays a button to fetch data based on selected parameters.
     Shows the report DataFrame and download link upon successful data fetching.
     """
-    if st.button("Fetch Data"):
+    if st.sidebar.button("Fetch Data"):
         report = fetch_data_loading(webproperty, search_type, start_date, end_date, selected_dimensions, min_clicks)
         if report is not None:
             st.session_state.fetched_data = report  # Store in session state

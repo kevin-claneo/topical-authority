@@ -733,6 +733,8 @@ def main():
                 # Generate topics from the main queries
                 num_topics = 10  # Specify the desired number of topics
                 temperature = 0.7  # Specify the temperature for topic generation
+                ANTHROPIC_API_KEY = st.sidebar.text_input("Anthropic API Key", type="password", help="Your Anthropic API key to authenticate and access the language model.")
+                model_name = Sonnet
                 topics = extract_topics(main_queries, num_topics, temperature)
                 
                 # Generate relationships between the topics

@@ -49,7 +49,7 @@ MAX_POSITION = 5
 
 # Define models
 ANTHROPIC_MODELS = ['claude-3-opus-20240229', 'claude-3-sonnet-20240229','claude-3-haiku-20240307']
-GROQ_MODELS = ['mixtral-8x7b-32768', 'llama3-70b-8192']
+GROQ_MODELS = ['llama3-70b-8192', 'mixtral-8x7b-32768']
 OPENAI_MODELS = ['gpt-4-turbo', 'gpt-3.5-turbo']
 MODELS = GROQ_MODELS + ANTHROPIC_MODELS + OPENAI_MODELS
 TEMPERATURE = 0.2

@@ -45,7 +45,7 @@ DEVICE_OPTIONS = ["All Devices", "desktop", "mobile", "tablet"]
 DIMENSIONS = ["page", "query"]
 MAX_ROWS = 250_000
 DF_PREVIEW_ROWS = 100
-MAX_POSITION = 5
+MAX_POSITION = 6
 
 # Define models
 ANTHROPIC_MODELS = ['claude-3-opus-20240229', 'claude-3-sonnet-20240229','claude-3-haiku-20240307']

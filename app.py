@@ -419,7 +419,7 @@ def extract_entities_from_queries(llm_client, model, main_queries_df, country, l
             except Exception as e:
                 print(f"Error: {e}. Retrying in 7 seconds...")
                 time.sleep(7)
-
+    print(result)
     main_queries_df['Entity'] = main_queries_df['Main Query'].apply(extract_entity)
     return main_queries_df
 
@@ -468,7 +468,6 @@ def main():
                 main_queries_df = st.session_state.main_queries_df
                 main_queries_df = extract_entities_from_queries(llm_client, model, main_queries_df, country, language)
                 show_dataframe(main_queries_df)
-                # Generate topics from the main queries
                 
                     
 

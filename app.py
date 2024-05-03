@@ -45,6 +45,7 @@ DEVICE_OPTIONS = ["All Devices", "desktop", "mobile", "tablet"]
 DIMENSIONS = ["page", "query"]
 MAX_ROWS = 250_000
 DF_PREVIEW_ROWS = 100
+MAX_POSITION = 5
 
 # Define models
 ANTHROPIC_MODELS = ['claude-3-opus-20240229', 'claude-3-sonnet-20240229','claude-3-haiku-20240307']
@@ -194,10 +195,12 @@ def fetch_gsc_data(webproperty, search_type, start_date, end_date, dimensions, m
         if 'clicks' in df.columns and 'position' in df.columns:
             if min_clicks is not None and min_clicks > 0:
                 df = df[df['clicks'] >= min_clicks]
+                df = df[df['position'] <= MAX_POSITION]
+                
             else:
-                print("Skipping filtering based on clicks as min_clicks is None or 0.")
+                st.write("Skipping filtering based on clicks asas min_clicks is None or 0.")
         else:
-            show_error("Columns 'clicks' or 'position' not in DataFrame")
+            show_error("Column 'clicks' not in DataFrame")
         
         return df
     except Exception as e:
@@ -337,7 +340,6 @@ def extract_main_queries(df, min_clicks):
     Extracts the main queries for each URL where the main keyword is in the top 5 positions and generates a minimum amount of traffic.
     Returns a DataFrame with the extracted main queries and their corresponding URLs.
     """
-    main_queries_df = df[(df['position'] <= 5) & (df['clicks'] >= min_clicks)][['page', 'query']]
     main_queries_df = main_queries_df.groupby('page').agg({'query': lambda x: x.iloc[0]}).reset_index()
     main_queries_df.columns = ['URL', 'Main Query']
     return main_queries_df

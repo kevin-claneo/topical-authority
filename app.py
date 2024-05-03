@@ -182,7 +182,7 @@ def list_gsc_properties(credentials):
     site_list = service.sites().list().execute()
     return [site['siteUrl'] for site in site_list.get('siteEntry', [])] or ["No properties found"]
 
-def fetch_gsc_data(webproperty, search_type, start_date, end_date, dimensions, min_clicks, device_type=None):
+def fetch_gsc_data(webproperty, search_type, start_date, end_date, dimensions, min_clicks, directory, device_type=None):
     """
     Fetches Google Search Console data for a specified property, date range, dimensions, and device type.
     Handles errors and returns the data as a DataFrame.
@@ -192,15 +192,18 @@ def fetch_gsc_data(webproperty, search_type, start_date, end_date, dimensions, m
     try:
         df = query.limit(MAX_ROWS).get().to_dataframe()
         
+        if directory:
+            # Filter URLs based on the provided directory using regex
+            df = df[df['page'].str.contains(f".*/({directory}).*", regex=True)]
+        
         if 'clicks' in df.columns and 'position' in df.columns:
             if min_clicks is not None and min_clicks > 0:
                 df = df[df['clicks'] >= min_clicks]
                 df = df[df['position'] <= MAX_POSITION]
-                
             else:
-                st.write("Skipping filtering based on clicks asas min_clicks is None or 0.")
+                st.write("Skipping filtering based on clicks as min_clicks is None or 0.")
         else:
-            show_error("Column 'clicks' not in DataFrame")
+            show_error("Columns 'clicks' or 'position' not in DataFrame")
         
         return df
     except Exception as e:
@@ -208,13 +211,13 @@ def fetch_gsc_data(webproperty, search_type, start_date, end_date, dimensions, m
         return pd.DataFrame()
 
 
-def fetch_data_loading(webproperty, search_type, start_date, end_date, dimensions, min_clicks, device_type=None):
+def fetch_data_loading(webproperty, search_type, start_date, end_date, dimensions, min_clicks, directory, device_type=None):
     """
     Fetches Google Search Console data with a loading indicator. Utilises 'fetch_gsc_data' for data retrieval.
     Returns the fetched data as a DataFrame.
     """
     with st.spinner('Fetching data...'):
-        return fetch_gsc_data(webproperty, search_type, start_date, end_date, dimensions, min_clicks, device_type)
+        return fetch_gsc_data(webproperty, search_type, start_date, end_date, dimensions, min_clicks, directory, device_type)
 
 
 # -------------
@@ -335,22 +338,21 @@ def show_min_clicks_input():
     st.session_state.selected_min_clicks = min_clicks
     return min_clicks
 
-def extract_main_queries(df, min_clicks):
+def show_directory_input():
     """
-    Extracts the main queries for each URL where the main keyword is in the top 5 positions and generates a minimum amount of traffic.
-    Returns a DataFrame with the extracted main queries and their corresponding URLs.
+    Displays a text input for specifying an optional directory for filtering URLs.
+    Returns the entered directory value.
     """
-    main_queries_df = main_queries_df.groupby('page').agg({'query': lambda x: x.iloc[0]}).reset_index()
-    main_queries_df.columns = ['URL', 'Main Query']
-    return main_queries_df
+    directory = st.text_input("Optional Directory Filter", "", help="Enter a directory (e.g., '/de/') to filter URLs. Leave empty to include all URLs.")
+    return directory
 
-def show_fetch_data_button(webproperty, search_type, start_date, end_date, selected_dimensions, min_clicks):
+def show_fetch_data_button(webproperty, search_type, start_date, end_date, selected_dimensions, min_clicks, directory):
     """
     Displays a button to fetch data based on selected parameters.
     Shows the report DataFrame and download link upon successful data fetching.
     """
     if st.button("Fetch Data"):
-        report = fetch_data_loading(webproperty, search_type, start_date, end_date, selected_dimensions, min_clicks)
+        report = fetch_data_loading(webproperty, search_type, start_date, end_date, selected_dimensions, min_clicks, directory)
         if report is not None:
             st.session_state.fetched_data = report  # Store in session state
             #main_queries_df = extract_main_queries(report, min_clicks)
@@ -469,7 +471,8 @@ def main():
             llm_client, model = handle_api_keys()
             country = st.selectbox("Country", sorted_countries)
             language = st.selectbox("Language", sorted_languages)
-            show_fetch_data_button(webproperty, search_type, start_date, end_date, selected_dimensions, min_clicks)
+            directory = show_directory_input()
+            show_fetch_data_button(webproperty, search_type, start_date, end_date, selected_dimensions, min_clicks, directory)
             show_dataframe(st.session_state.fetched_data)
             #if 'main_queries_df' in st.session_state and st.session_state.main_queries_df is not None:
              #   main_queries_df = st.session_state.main_queries_df

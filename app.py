@@ -213,7 +213,9 @@ def fetch_data_loading(webproperty, search_type, start_date, end_date, dimension
 # -------------
 # Utility Functions
 # -------------
-
+def custom_sort(all_items, preferred_items):
+    sorted_items = preferred_items + ["_____________"] + [item for item in all_items if item not in preferred_items]
+    return sorted_items
 
 def calc_date_range(selection):
     """

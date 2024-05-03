@@ -462,6 +462,7 @@ def main():
             start_date, end_date = calc_date_range(date_range_selection)
             selected_dimensions = DIMENSIONS
             min_clicks = show_min_clicks_input()
+            st.write(min_clicks)
             sorted_countries = custom_sort(COUNTRIES, preferred_countries)
             sorted_languages = custom_sort(LANGUAGES, preferred_languages)
             llm_client, model = handle_api_keys()

@@ -45,7 +45,7 @@ DEVICE_OPTIONS = ["All Devices", "desktop", "mobile", "tablet"]
 DIMENSIONS = ["page", "query"]
 MAX_ROWS = 250_000
 DF_PREVIEW_ROWS = 100
-MAX_POSITION = 6
+MAX_POSITION = 5
 
 # Define models
 ANTHROPIC_MODELS = ['claude-3-opus-20240229', 'claude-3-sonnet-20240229','claude-3-haiku-20240307']
@@ -474,6 +474,7 @@ def main():
             directory = show_directory_input()
             show_fetch_data_button(webproperty, search_type, start_date, end_date, selected_dimensions, min_clicks, directory)
             show_dataframe(st.session_state.fetched_data)
+            st.write(len(st.session_state.fetched_data))
             #if 'main_queries_df' in st.session_state and st.session_state.main_queries_df is not None:
              #   main_queries_df = st.session_state.main_queries_df
               #  st.write('Before extraction')

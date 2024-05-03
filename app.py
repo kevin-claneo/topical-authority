@@ -16,11 +16,11 @@ import nltk
 from nltk.corpus import stopwords
 nltk.download('stopwords')
 
-# Local imports
-from langchain_core.prompts import PromptTemplate
-from langchain.chains import LLMChain
-from langchain_anthropic import ChatAnthropic
-import anthropic
+# LLM imports
+from anthropic import Anthropic
+from openai import OpenAI
+from groq import Groq
+
 import networkx as nx
 import community as community_louvain
 from typing import Dict, Set

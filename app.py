@@ -376,7 +376,7 @@ def handle_api_keys():
             llm_client  = OpenAI(api_key=st.secrets["openai"]["api_key"])
         return llm_client, model
 
-def extract_entities_from_queries(llm_client, model, main_queries_df):
+def extract_entities_from_queries(llm_client, model, main_queries_df, country, language):
     prompt = f"""
     You are a specialized assistant trained to extract the main entity or topic from a search query. Your task is to:
     - Examine the provided search query
@@ -384,7 +384,7 @@ def extract_entities_from_queries(llm_client, model, main_queries_df):
     - If you are unsure about the main entity or topic, return None
     - Respond with the extracted entity or topic as a string
 
-    Your response must be in English, but the input query can be in any language.
+    Your response must be in {language}, note that the input is from {country} in {language}
     """
 
     def extract_entity(query):
@@ -460,12 +460,13 @@ def main():
             min_clicks = show_min_clicks_input()
             sorted_countries = custom_sort(COUNTRIES, preferred_countries)
             sorted_languages = custom_sort(LANGUAGES, preferred_languages)
+            llm_client, model = handle_api_keys()
             country = st.selectbox("Country", sorted_countries)
             language = st.selectbox("Language", sorted_languages)
             show_fetch_data_button(webproperty, search_type, start_date, end_date, selected_dimensions, min_clicks)
             if 'main_queries_df' in st.session_state and st.session_state.main_queries_df is not None:
                 main_queries_df = st.session_state.main_queries_df
-                main_queries_df = extract_entities_from_queries(llm_client, model, main_queries_df)
+                main_queries_df = extract_entities_from_queries(llm_client, model, main_queries_df, country, language)
                 
                 # Generate topics from the main queries
                 

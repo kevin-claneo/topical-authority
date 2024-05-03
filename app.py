@@ -419,7 +419,7 @@ def extract_entities_from_queries(llm_client, model, main_queries_df, country, l
             except Exception as e:
                 print(f"Error: {e}. Retrying in 7 seconds...")
                 time.sleep(7)
-    print(result)
+        print(result)
     main_queries_df['Entity'] = main_queries_df['Main Query'].apply(extract_entity)
     return main_queries_df
 

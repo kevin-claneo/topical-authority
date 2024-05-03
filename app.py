@@ -325,6 +325,15 @@ def show_min_clicks_input():
     st.session_state.selected_min_clicks = min_clicks
     return min_clicks
 
+def extract_main_queries(df, min_clicks):
+    """
+    Extracts the main queries for each URL where the main keyword is in the top 5 positions and generates a minimum amount of traffic.
+    Returns a DataFrame with the extracted main queries and their corresponding URLs.
+    """
+    main_queries_df = df[(df['position'] <= 5) & (df['clicks'] >= min_clicks)][['page', 'query']]
+    main_queries_df = main_queries_df.groupby('page').agg({'query': lambda x: x.iloc[0]}).reset_index()
+    main_queries_df.columns = ['URL', 'Main Query']
+    return main_queries_df
 
 def show_fetch_data_button(webproperty, search_type, start_date, end_date, selected_dimensions, min_clicks):
     """
@@ -453,7 +462,7 @@ def main():
             show_fetch_data_button(webproperty, search_type, start_date, end_date, selected_dimensions, min_clicks)
             if 'main_queries_df' in st.session_state and st.session_state.main_queries_df is not None:
                 main_queries_df = st.session_state.main_queries_df
-                main_queries = main_queries_df['Main Query'].tolist()
+                main_queries_df = extract_entities_from_queries(llm_client, model, main_queries_df)
                 
                 # Generate topics from the main queries
                 

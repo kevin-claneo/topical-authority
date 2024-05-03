@@ -211,7 +211,7 @@ def fetch_data_loading(webproperty, search_type, start_date, end_date, dimension
     Returns the fetched data as a DataFrame.
     """
     with st.spinner('Fetching data...'):
-        return fetch_gsc_data(webproperty, search_type, start_date, end_date, dimensions, device_type, min_clicks)
+        return fetch_gsc_data(webproperty, search_type, start_date, end_date, dimensions, min_clicks, device_type)
 
 
 # -------------
@@ -462,7 +462,6 @@ def main():
             start_date, end_date = calc_date_range(date_range_selection)
             selected_dimensions = DIMENSIONS
             min_clicks = show_min_clicks_input()
-            st.write(min_clicks)
             sorted_countries = custom_sort(COUNTRIES, preferred_countries)
             sorted_languages = custom_sort(LANGUAGES, preferred_languages)
             llm_client, model = handle_api_keys()

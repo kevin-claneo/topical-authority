@@ -191,15 +191,15 @@ def fetch_gsc_data(webproperty, search_type, start_date, end_date, dimensions, m
 
     try:
         df = query.limit(MAX_ROWS).get().to_dataframe()
-        print(f"DataFrame shape before filtering: {df.shape}")
-        print(f"DataFrame columns: {df.columns}")
-        print(f"DataFrame head:\n{df.head()}")
+        st.write(f"DataFrame shape before filtering: {df.shape}")
+        st.write(f"DataFrame columns: {df.columns}")
+        st.write(f"DataFrame head:\n{df.head()}")
         
         if 'clicks' in df.columns and 'position' in df.columns:
-            print(f"Minimum clicks: {min_clicks}")
-            print(f"DataFrame shape before filtering: {df.shape}")
+            st.write(f"Minimum clicks: {min_clicks}")
+            st.write(f"DataFrame shape before filtering: {df.shape}")
             df = df[df['clicks'] >= min_clicks]
-            print(f"DataFrame shape after filtering: {df.shape}")
+            st.write(f"DataFrame shape after filtering: {df.shape}")
         else:
             show_error("Columns 'clicks' or 'position' not in DataFrame")
         

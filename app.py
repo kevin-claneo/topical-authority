@@ -427,8 +427,8 @@ def extract_entities_from_queries(llm_client, model, fetched_data, country, lang
                     print(f"Error: {e}. Retrying in 7 seconds...")
                     time.sleep(7)
             
-            fetched_data['Entity'] = fetched_data['query'].apply(extract_entity)
-        return fetched_data
+            fetched_data['entity'] = fetched_data['query'].apply(extract_entity)
+            return fetched_data
 
 
 

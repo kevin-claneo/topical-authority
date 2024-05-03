@@ -467,7 +467,7 @@ def main():
             if 'main_queries_df' in st.session_state and st.session_state.main_queries_df is not None:
                 main_queries_df = st.session_state.main_queries_df
                 main_queries_df = extract_entities_from_queries(llm_client, model, main_queries_df, country, language)
-                
+                show_dataframe(main_queries_df)
                 # Generate topics from the main queries
                 
                     

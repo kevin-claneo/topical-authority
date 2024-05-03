@@ -181,7 +181,6 @@ def list_gsc_properties(credentials):
     site_list = service.sites().list().execute()
     return [site['siteUrl'] for site in site_list.get('siteEntry', [])] or ["No properties found"]
 
-
 def fetch_gsc_data(webproperty, search_type, start_date, end_date, dimensions, min_clicks, device_type=None):
     """
     Fetches Google Search Console data for a specified property, date range, dimensions, and device type.
@@ -191,15 +190,12 @@ def fetch_gsc_data(webproperty, search_type, start_date, end_date, dimensions, m
 
     try:
         df = query.limit(MAX_ROWS).get().to_dataframe()
-        st.write(f"DataFrame shape before filtering: {df.shape}")
-        st.write(f"DataFrame columns: {df.columns}")
-        st.write(f"DataFrame head:\n{df.head()}")
         
         if 'clicks' in df.columns and 'position' in df.columns:
-            st.write(f"Minimum clicks: {min_clicks}")
-            st.write(f"DataFrame shape before filtering: {df.shape}")
-            df = df[df['clicks'] >= min_clicks]
-            st.write(f"DataFrame shape after filtering: {df.shape}")
+            if min_clicks is not None and min_clicks > 0:
+                df = df[df['clicks'] >= min_clicks]
+            else:
+                print("Skipping filtering based on clicks as min_clicks is None or 0.")
         else:
             show_error("Columns 'clicks' or 'position' not in DataFrame")
         

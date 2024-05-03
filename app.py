@@ -360,19 +360,7 @@ def show_fetch_data_button(webproperty, search_type, start_date, end_date, selec
 # Entity Extraction Functions
 # ---------------------------
 def handle_api_keys():
-        model = st.selectbox("Choose a model:", MODELS, help=f"""
-        Here's a brief overview of the models available for generating content:
-        
-        - **{GROQ_MODELS}**: These models are free to use and offer fast response times, making them an excellent choice for users looking for quick results. However, they may not always provide the highest quality of text. Among the GROQ models, the first model in this list: **{GROQ_MODELS[0]}** is generally considered the best due to its balance of speed and quality.
-        
-        - **{ANTHROPIC_MODELS}**: The models from Anthropic are known for their superior text quality. However, they require an API key, which can be obtained from [Anthropic's platform](https://console.anthropic.com/settings/keys). Among the Anthropic models, the first model in this list: **{ANTHROPIC_MODELS[0]}**, is considered the best, offering the highest quality text, but is the most costly.
-        
-        - **{OPENAI_MODELS}**: These are the most well-known models in the industry. You can obtain an API key from [OpenAI's platform](https://platform.openai.com/api-keys). Among the OpenAI models, the first model in this list: **{OPENAI_MODELS[0]}**, is considered the best, offering the highest quality text, but is the most costly.
-        
-        **It's important to note that the quality and cost-effectiveness of models can vary greatly, so choose the model wisely and test before creating loads of meta data. Always consider your specific needs and budget when selecting a model.**
-        
-        For the most current information on which model is performing best overall, you can visit the [Chatbot Arena Leaderboard](https://huggingface.co/spaces/lmsys/chatbot-arena-leaderboard) on Hugging Face. This leaderboard provides insights into the performance of various models in real-world scenarios, helping you make an informed decision.
-        """)
+        model = GROQ_MODELS[1]
         if model in GROQ_MODELS:
             llm_client  = Groq(api_key=st.secrets["groq"]["api_key"])
         elif model in ANTHROPIC_MODELS:
@@ -381,7 +369,8 @@ def handle_api_keys():
             llm_client  = OpenAI(api_key=st.secrets["openai"]["api_key"])
         return llm_client, model
 
-def extract_entities_from_queries(llm_client, model, fetched_data, country, language):
+
+def extract_entities_from_queries(llm_client, model, fetched_data, country, language, progress_bar):
     prompt = f"""
     You are a specialized assistant trained to extract the main entity or topic from a search query. Your task is to:
     - Examine the provided search query
@@ -427,8 +416,17 @@ def extract_entities_from_queries(llm_client, model, fetched_data, country, lang
                 print(f"Error: {e}. Retrying in 7 seconds...")
                 time.sleep(7)
     
-    fetched_data['entity'] = fetched_data['query'].apply(extract_entity)
+    entities = []
+    for i in stqdm(range(len(fetched_data)), desc="Extracting entities"):
+        query = fetched_data['query'].iloc[i]
+        entity = extract_entity(query)
+        entities.append(entity)
+        progress_value = (i + 1) / len(fetched_data)
+        progress_bar.progress(progress_value)
+    
+    fetched_data['entity'] = entities
     return fetched_data
+
 
 
 

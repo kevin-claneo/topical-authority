@@ -427,9 +427,14 @@ def extract_entities_from_queries(llm_client, model, fetched_data, country, lang
                 print(f"Error: {e}. Retrying in 7 seconds...")
                 time.sleep(7)
         entities = []
-        for query in stqdm(fetched_data['query'], desc="Extracting Entities"):
+        total_queries = len(fetched_data)
+        progress_bar = st.progress(0)
+    
+        for i, query in enumerate(fetched_data['query']):
             entity = extract_entity(query)
             entities.append(entity)
+            progress = (i + 1) / total_queries
+            progress_bar.progress(progress)
     
         fetched_data['Entity'] = entities
         return fetched_data

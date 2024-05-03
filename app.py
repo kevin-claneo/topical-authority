@@ -429,6 +429,134 @@ def extract_entities_from_queries(llm_client, model, fetched_data, country, lang
     return fetched_data
 
 
+class RelationshipGenerator:
+    """
+    A class for generating relationships between entities.
+    """
+    def __init__(self, llm_client, model):
+        """
+        Initializes the RelationshipGenerator instance.
+        Args:
+            llm_client: The LLM client instance to use for generating relationships.
+            model: The LLM model to use for generating relationships.
+        """
+        self.llm_client = llm_client
+        self.model = model
+
+    def generate_batch_relationships(self, batch_entities, other_entities, existing_relationships, country, language):
+        """
+        Generates relationships between a batch of entities and other entities.
+        Args:
+            batch_entities (Dict[str, str]): A dictionary of entities in the current batch, where keys are entity IDs and values are entity labels.
+            other_entities (Dict[str, str]): A dictionary of other entities, where keys are entity IDs and values are entity labels.
+            existing_relationships (Set[tuple]): A set of existing relationships, where each tuple represents a relationship (source_id, target_id, edge_label).
+            country (str): The country for which the relationships are being generated.
+            language (str): The language in which the relationships should be generated.
+        Returns:
+            Set[tuple]: A set of new relationships, where each tuple represents a relationship (source_id, target_id, edge_label).
+        """
+        prompt = f"""
+        Given the following entities from {country} in {language}:
+        {{batch_entities}}
+        Consider the other entities:
+        {{other_entities}}
+        and the existing relationships:
+        {{existing_relationships}}
+        Your task is to identify relevant relationships between the given entities and the other entities.
+        Use domain knowledge to prioritize important connections and provide meaningful edge labels. You must give each entity no less than 2 relationships and no more than 5 relationships for any individual entity. You must return all requested entity relationships.
+        Example output:
+        source_id1,target_id1,edge_label1
+        source_id2,target_id2,edge_label2
+        source_id3,target_id3,edge_label3
+        Please provide the output as a list of relationships and their labels, in the format 'source_id,target_id,edge_label', without any other text or explanations.
+        Focus on identifying the most significant and impactful relationships.
+        Your response must be in {language}.
+        """
+
+        def generate_relationships(query):
+            if self.model in ANTHROPIC_MODELS:
+                try:
+                    response = self.llm_client.messages.create(
+                        model=self.model,
+                        system=prompt.format(batch_entities=query[0], other_entities=query[1], existing_relationships=query[2]),
+                        max_tokens=MAX_TOKEN,
+                        temperature=TEMPERATURE,
+                        messages=[
+                            {"role": "user", "content": ""}
+                        ]
+                    )
+                    result = response.content[0].text
+                    return result
+                except Exception as e:
+                    print(f"Error: {e}. Retrying in 7 seconds...")
+                    time.sleep(7)
+            else:
+                try:
+                    response = self.llm_client.chat.completions.create(
+                        model=self.model,
+                        messages=[
+                            {"role": "system", "content": prompt.format(batch_entities=query[0], other_entities=query[1], existing_relationships=query[2])},
+                            {"role": "user", "content": ""}],
+                        max_tokens=MAX_TOKEN,
+                        temperature=TEMPERATURE,
+                    )
+                    result = response.choices[0].message.content
+                    return result
+                except Exception as e:
+                    print(f"Error: {e}. Retrying in 7 seconds...")
+                    time.sleep(7)
+
+        batch_entity_ids = list(batch_entities.keys())
+        existing_batch_relationships = [f"{rel[0]},{rel[1]},{rel[2]}" for rel in existing_relationships if rel[0] in batch_entity_ids]
+        query = (
+            ", ".join([f"{id}: {entity}" for id, entity in batch_entities.items()]),
+            ", ".join([f"{id}: {entity}" for id, entity in other_entities.items()]),
+            ", ".join(existing_batch_relationships)
+        )
+        new_relationships_response = generate_relationships(query)
+        new_relationships = set()
+        for rel in new_relationships_response.split("\n"):
+            rel = rel.strip()
+            if "," in rel:
+                parts = rel.split(",")
+                if len(parts) >= 2:
+                    source_id, target_id = parts[:2]
+                    source_id = source_id.strip()
+                    target_id = target_id.strip()
+                    edge_label = parts[2].strip() if len(parts) > 2 else ""
+                    if source_id in batch_entity_ids and target_id in other_entities and (source_id, target_id, edge_label) not in existing_relationships:
+                        new_relationships.add((source_id, target_id, edge_label))
+        return new_relationships
+
+    def generate_relationships(self, entities, existing_relationships, batch_size, num_parallel_runs, country, language):
+        """
+        Generates relationships between entities in parallel.
+        Args:
+            entities (Dict[str, str]): A dictionary of entities, where keys are entity IDs and values are entity labels.
+            existing_relationships (Set[tuple]): A set of existing relationships, where each tuple represents a relationship (source_id, target_id, edge_label).
+            batch_size (int): The size of the batches for parallel processing.
+            num_parallel_runs (int): The number of parallel runs to perform.
+            country (str): The country for which the relationships are being generated.
+            language (str): The language in which the relationships should be generated.
+        Returns:
+            Set[tuple]: A set of new relationships, where each tuple represents a relationship (source_id, target_id, edge_label).
+        """
+        new_relationships = set()
+        entity_ids = list(entities.keys())
+        batches = [entity_ids[i:i+batch_size] for i in range(0, len(entity_ids), batch_size)]
+        progress_bar = st.progress(0)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=num_parallel_runs) as executor:
+            futures = []
+            for batch_entity_ids in batches:
+                batch_entities = {id: entities[id] for id in batch_entity_ids}
+                other_entities = {id: entities[id] for id in entities if id not in batch_entity_ids}
+                future = executor.submit(self.generate_batch_relationships, batch_entities, other_entities, existing_relationships, country, language)
+                futures.append(future)
+            for i, future in enumerate(concurrent.futures.as_completed(futures)):
+                new_relationships.update(future.result())
+                progress_value = (i + 1) / len(futures)
+                progress_bar.progress(progress_value)
+        return new_relationships
 
 
 # -------------
@@ -474,11 +602,13 @@ def main():
             show_fetch_data_button(webproperty, search_type, start_date, end_date, selected_dimensions, min_clicks, directory)
             if 'fetched_data' in st.session_state and st.session_state.fetched_data is not None:
                 fetched_data = st.session_state.fetched_data
-                st.write('Before extraction')
-                show_dataframe(fetched_data)
                 fetched_data = extract_entities_from_queries(llm_client, model, fetched_data, country, language)
-                st.write('After extraction')
-                show_dataframe(fetched_data)
+                st.session_state.fetched_data_with_entities = fetched_data
+                # Create an instance of RelationshipGenerator
+                relationship_generator = RelationshipGenerator(llm_client, model)
+
+                # Generate relationships
+                new_relationships = relationship_generator.generate_relationships(entities, existing_relationships, batch_size, num_parallel_runs, country, language)
                     
 
 

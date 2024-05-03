@@ -195,7 +195,6 @@ def fetch_gsc_data(webproperty, search_type, start_date, end_date, dimensions, m
         if directory:
             # Filter URLs based on the provided directory using regex
             df = df[df['page'].str.contains(f".*{directory}.*", regex=True)]
-            show_dataframe(df)
         
         if 'clicks' in df.columns and 'position' in df.columns:
             if min_clicks is not None and min_clicks > 0:
@@ -344,7 +343,7 @@ def show_directory_input():
     Displays a text input for specifying an optional directory for filtering URLs.
     Returns the entered directory value.
     """
-    directory = st.text_input("Optional Directory Filter", "", help="Enter a directory (e.g., '/de/') to filter URLs. Leave empty to include all URLs.")
+    directory = st.text_input("Directory Filter (Optional)", "", help="Enter a directory (e.g., '/de/') to filter URLs. You could even filter for subdomains with entering 'good.' to filter for 'good.example.com'. Leave empty to include all URLs. Remember to enter the correct symbols before and after")
     return directory
 
 def show_fetch_data_button(webproperty, search_type, start_date, end_date, selected_dimensions, min_clicks, directory):

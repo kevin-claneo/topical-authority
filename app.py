@@ -193,9 +193,9 @@ def fetch_gsc_data(webproperty, search_type, start_date, end_date, dimensions, m
         df = query.limit(MAX_ROWS).get().to_dataframe()
         
         if directory:
-            st.write(directory)
             # Filter URLs based on the provided directory using regex
             df = df[df['page'].str.contains(f".*/({directory}).*", regex=True)]
+            show_dataframe(df)
         
         if 'clicks' in df.columns and 'position' in df.columns:
             if min_clicks is not None and min_clicks > 0:

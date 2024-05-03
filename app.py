@@ -343,7 +343,7 @@ def show_directory_input():
     Displays a text input for specifying an optional directory for filtering URLs.
     Returns the entered directory value.
     """
-    directory = st.text_input("Directory Filter (Optional)", "", help="Enter a directory (e.g., '/de/') to filter URLs. You could even filter for subdomains with entering 'good.' to filter for 'good.example.com'. Leave empty to include all URLs. Remember to enter the correct symbols before and after")
+    directory = st.text_input("Directory Filter (Optional)", "", help="Enter a directory (e.g., '/de/') to filter URLs. You could even filter for subdomains(e.g., 'good.' to filter for 'good.example.com'). Leave empty to include all URLs. Remember to enter the correct symbols before and after")
     return directory
 
 def show_fetch_data_button(webproperty, search_type, start_date, end_date, selected_dimensions, min_clicks, directory):

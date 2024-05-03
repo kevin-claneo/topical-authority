@@ -360,7 +360,7 @@ def show_fetch_data_button(webproperty, search_type, start_date, end_date, selec
 # Entity Extraction Functions
 # ---------------------------
 def handle_api_keys():
-        model = GROQ_MODELS[1]
+        model = GROQ_MODELS[0]
         if model in GROQ_MODELS:
             llm_client  = Groq(api_key=st.secrets["groq"]["api_key"])
         elif model in ANTHROPIC_MODELS:

@@ -52,6 +52,8 @@ ANTHROPIC_MODELS = ['claude-3-opus-20240229', 'claude-3-sonnet-20240229','claude
 GROQ_MODELS = ['mixtral-8x7b-32768', 'llama3-70b-8192']
 OPENAI_MODELS = ['gpt-4-turbo', 'gpt-3.5-turbo']
 MODELS = GROQ_MODELS + ANTHROPIC_MODELS + OPENAI_MODELS
+TEMPERATURE = 0.0
+MAX_TOKEN = 3
 LANGUAGES = ["Afrikaans","Albanian","Amharic","Arabic","Armenian","Azerbaijani","Basque","Belarusian","Bengali","Bosnian","Bulgarian","Catalan","Cebuano","Chinese (Simplified)","Chinese (Traditional)","Corsican","Croatian","Czech","Danish","Dutch","English","Esperanto","Estonian","Finnish","French","Frisian","Galician","Georgian","German","Greek","Gujarati","Haitian Creole","Hausa","Hawaiian","Hebrew","Hindi","Hmong","Hungarian","Icelandic","Igbo","Indonesian","Irish","Italian","Japanese","Javanese","Kannada","Kazakh","Khmer","Kinyarwanda","Korean","Kurdish","Kyrgyz","Lao","Latvian","Lithuanian","Luxembourgish","Macedonian","Malagasy","Malay","Malayalam","Maltese","Maori","Marathi","Mongolian","Myanmar (Burmese)","Nepali","Norwegian","Nyanja (Chichewa)","Odia (Oriya)","Pashto","Persian","Polish","Portuguese (Portugal","Punjabi","Romanian","Russian","Samoan","Scots Gaelic","Serbian","Sesotho","Shona","Sindhi","Sinhala (Sinhalese)","Slovak","Slovenian","Somali","Spanish","Sundanese","Swahili","Swedish","Tagalog (Filipino)","Tajik","Tamil","Tatar","Telugu","Thai","Turkish","Turkmen","Ukrainian","Urdu","Uyghur","Uzbek","Vietnamese","Welsh","Xhosa","Yiddish","Yoruba","Zulu"]
 COUNTRIES = ["Afghanistan", "Albania", "Antarctica", "Algeria", "American Samoa", "Andorra", "Angola", "Antigua and Barbuda", "Azerbaijan", "Argentina", "Australia", "Austria", "The Bahamas", "Bahrain", "Bangladesh", "Armenia", "Barbados", "Belgium", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Belize", "Solomon Islands", "Brunei", "Bulgaria", "Myanmar (Burma)", "Burundi", "Cambodia", "Cameroon", "Canada", "Cape Verde", "Central African Republic", "Sri Lanka", "Chad", "Chile", "China", "Christmas Island", "Cocos (Keeling) Islands", "Colombia", "Comoros", "Republic of the Congo", "Democratic Republic of the Congo", "Cook Islands", "Costa Rica", "Croatia", "Cyprus", "Czechia", "Benin", "Denmark", "Dominica", "Dominican Republic", "Ecuador", "El Salvador", "Equatorial Guinea", "Ethiopia", "Eritrea", "Estonia", "South Georgia and the South Sandwich Islands", "Fiji", "Finland", "France", "French Polynesia", "French Southern and Antarctic Lands", "Djibouti", "Gabon", "Georgia", "The Gambia", "Germany", "Ghana", "Kiribati", "Greece", "Grenada", "Guam", "Guatemala", "Guinea", "Guyana", "Haiti", "Heard Island and McDonald Islands", "Vatican City", "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iraq", "Ireland", "Israel", "Italy", "Jamaica", "Japan", "Kazakhstan", "Jordan", "Kenya", "South Korea", "Kuwait", "Kyrgyzstan", "Laos", "Lebanon", "Lesotho", "Latvia", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Mauritania", "Mauritius", "Mexico", "Monaco", "Mongolia", "Moldova", "Montenegro", "Morocco", "Mozambique", "Oman", "Namibia", "Nauru", "Nepal", "Netherlands", "Curacao", "Sint Maarten", "Caribbean Netherlands", "New Caledonia", "Vanuatu", "New Zealand", "Nicaragua", "Niger", "Nigeria", "Niue", "Norfolk Island", "Norway", "Northern Mariana Islands", "United States Minor Outlying Islands", "Federated States of Micronesia", "Marshall Islands", "Palau", "Pakistan", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Pitcairn Islands", "Poland", "Portugal", "Guinea-Bissau", "Timor-Leste", "Qatar", "Romania", "Rwanda", "Saint Helena, Ascension and Tristan da Cunha", "Saint Kitts and Nevis", "Saint Lucia", "Saint Pierre and Miquelon", "Saint Vincent and the Grenadines", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Vietnam", "Slovenia", "Somalia", "South Africa", "Zimbabwe", "Spain", "Suriname", "Eswatini", "Sweden", "Switzerland", "Tajikistan", "Thailand", "Togo", "Tokelau", "Tonga", "Trinidad and Tobago", "United Arab Emirates", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "North Macedonia", "Egypt", "United Kingdom", "Guernsey", "Jersey", "Tanzania", "United States", "Burkina Faso", "Uruguay", "Uzbekistan", "Venezuela", "Wallis and Futuna", "Samoa", "Yemen", "Zambia"]
 
@@ -355,9 +357,6 @@ def show_fetch_data_button(webproperty, search_type, start_date, end_date, selec
         report = fetch_data_loading(webproperty, search_type, start_date, end_date, selected_dimensions, min_clicks, directory)
         if report is not None:
             st.session_state.fetched_data = report  # Store in session state
-            #main_queries_df = extract_main_queries(report, min_clicks)
-            #st.session_state.main_queries_df = main_queries_df  # Store in session state
-
 
 # ---------------------------
 # Entity Extraction Functions
@@ -384,15 +383,17 @@ def handle_api_keys():
             llm_client  = OpenAI(api_key=st.secrets["openai"]["api_key"])
         return llm_client, model
 
-def extract_entities_from_queries(llm_client, model, main_queries_df, country, language):
+def extract_entities_from_queries(llm_client, model, fetched_data, country, language):
     prompt = f"""
     You are a specialized assistant trained to extract the main entity or topic from a search query. Your task is to:
     - Examine the provided search query
     - Determine the main entity or topic that the query is referring to
     - If you are unsure about the main entity or topic, return None
-    - Respond with the extracted entity or topic as a string
+    - Respond with the extracted entity or topic as a string, without any other text or explanations
 
-    Your response must be in {language}, note that the input is from {country} in {language}
+    Given the search query from {country} in {language}, please provide the main entity or topic as a single term or phrase. Use ontologies, word embeddings, and similarity measures to identify the most relevant entity or topic. The goal is to contribute to building a comprehensive and insightful semantic map, so aim for high-quality and relevant entities.
+
+    Your response must be in {language}.
     """
 
     def extract_entity(query):
@@ -400,7 +401,7 @@ def extract_entities_from_queries(llm_client, model, main_queries_df, country, l
             try:
                 response = llm_client.messages.create(
                     model=model,
-                    system=prompt,
+                    system=prompt.format(query=query),
                     max_tokens=MAX_TOKEN,
                     temperature=TEMPERATURE,
                     messages=[
@@ -417,7 +418,7 @@ def extract_entities_from_queries(llm_client, model, main_queries_df, country, l
                 response = llm_client.chat.completions.create(
                     model=model,
                     messages=[
-                        {"role": "system", "content": prompt},
+                        {"role": "system", "content": prompt.format(query=query)},
                         {"role": "user", "content": query}],
                     max_tokens=MAX_TOKEN,
                     temperature=TEMPERATURE,
@@ -428,8 +429,9 @@ def extract_entities_from_queries(llm_client, model, main_queries_df, country, l
                 print(f"Error: {e}. Retrying in 7 seconds...")
                 time.sleep(7)
         print(result)
-    main_queries_df['Entity'] = main_queries_df['Main Query'].apply(extract_entity)
-    return main_queries_df
+    fetched_data['Entity'] = fetched_data['query'].apply(extract_entity)
+    return fetched_data
+
 
 
 # -------------
@@ -473,15 +475,13 @@ def main():
             language = st.selectbox("Language", sorted_languages)
             directory = show_directory_input()
             show_fetch_data_button(webproperty, search_type, start_date, end_date, selected_dimensions, min_clicks, directory)
-            show_dataframe(st.session_state.fetched_data)
-            st.write(len(st.session_state.fetched_data))
-            #if 'main_queries_df' in st.session_state and st.session_state.main_queries_df is not None:
-             #   main_queries_df = st.session_state.main_queries_df
-              #  st.write('Before extraction')
-               # show_dataframe(main_queries_df)
-                #main_queries_df = extract_entities_from_queries(llm_client, model, main_queries_df, country, language)
-                #show_dataframe(main_queries_df)
-                
+            if 'fetched_data' in st.session_state and st.session_state.fetched_data is not None:
+                fetched_data = st.session_state.fetched_data
+                st.write('Before extraction')
+                show_dataframe(fetched_data)
+                fetched_data = extract_entities_from_queries(llm_client, model, fetched_data, country, language)
+                st.write('After extraction')
+                show_dataframe(fetched_data)
                     
 
 

@@ -395,40 +395,39 @@ def extract_entities_from_queries(llm_client, model, fetched_data, country, lang
     """
 
     def extract_entity(query):
-        if model in ANTHROPIC_MODELS:
-            try:
-                response = llm_client.messages.create(
-                    model=model,
-                    system=prompt.format(query=query),
-                    max_tokens=MAX_TOKEN,
-                    temperature=TEMPERATURE,
-                    messages=[
-                        {"role": "user", "content": query}
-                    ]
-                )
-                result = response.content[0].text
-                return result
-            except Exception as e:
-                print(f"Error: {e}. Retrying in 7 seconds...")
-                time.sleep(7)
-        else:
-            try:
-                response = llm_client.chat.completions.create(
-                    model=model,
-                    messages=[
-                        {"role": "system", "content": prompt.format(query=query)},
-                        {"role": "user", "content": query}],
-                    max_tokens=MAX_TOKEN,
-                    temperature=TEMPERATURE,
-                )
-                result = response.choices[0].message.content
-                st.write(result)
-                return result  
-            except Exception as e:
-                print(f"Error: {e}. Retrying in 7 seconds...")
-                time.sleep(7)
-        
-        fetched_data['entity'] = fetched_data['query'].apply(extract_entity)
+            if model in ANTHROPIC_MODELS:
+                try:
+                    response = llm_client.messages.create(
+                        model=model,
+                        system=prompt.format(query=query),
+                        max_tokens=MAX_TOKEN,
+                        temperature=TEMPERATURE,
+                        messages=[
+                            {"role": "user", "content": query}
+                        ]
+                    )
+                    result = response.content[0].text
+                    return result
+                except Exception as e:
+                    print(f"Error: {e}. Retrying in 7 seconds...")
+                    time.sleep(7)
+            else:
+                try:
+                    response = llm_client.chat.completions.create(
+                        model=model,
+                        messages=[
+                            {"role": "system", "content": prompt.format(query=query)},
+                            {"role": "user", "content": query}],
+                        max_tokens=MAX_TOKEN,
+                        temperature=TEMPERATURE,
+                    )
+                    result = response.choices[0].message.content
+                    return result  
+                except Exception as e:
+                    print(f"Error: {e}. Retrying in 7 seconds...")
+                    time.sleep(7)
+            print(result)
+        fetched_data['Entity'] = fetched_data['query'].apply(extract_entity)
         return fetched_data
 
 

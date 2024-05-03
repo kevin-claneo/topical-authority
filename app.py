@@ -475,7 +475,8 @@ def main():
                 fetched_data = st.session_state.fetched_data
                 st.write('Before extraction')
                 show_dataframe(fetched_data)
-                fetched_data = extract_entities_from_queries(llm_client, model, fetched_data, country, language)
+                progress_bar = st.progress(0)
+                fetched_data = extract_entities_from_queries(llm_client, model, fetched_data, country, language, progress_bar)
                 st.write('After extraction')
                 show_dataframe(fetched_data)
                     

@@ -370,7 +370,7 @@ def handle_api_keys():
         return llm_client, model
 
 
-def extract_entities_from_queries(llm_client, model, fetched_data, country, language, progress_bar):
+def extract_entities_from_queries(llm_client, model, fetched_data, country, language):
     prompt = f"""
     You are a specialized assistant trained to extract the main entity or topic from a search query. Your task is to:
     - Examine the provided search query
@@ -417,6 +417,7 @@ def extract_entities_from_queries(llm_client, model, fetched_data, country, lang
                 time.sleep(7)
     
     entities = []
+    progress_bar = st.progress(0)
     for i in stqdm(range(len(fetched_data)), desc="Extracting entities"):
         query = fetched_data['query'].iloc[i]
         entity = extract_entity(query)
@@ -475,8 +476,7 @@ def main():
                 fetched_data = st.session_state.fetched_data
                 st.write('Before extraction')
                 show_dataframe(fetched_data)
-                progress_bar = st.progress(0)
-                fetched_data = extract_entities_from_queries(llm_client, model, fetched_data, country, language, progress_bar)
+                fetched_data = extract_entities_from_queries(llm_client, model, fetched_data, country, language)
                 st.write('After extraction')
                 show_dataframe(fetched_data)
                     

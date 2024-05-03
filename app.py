@@ -5,7 +5,6 @@ import concurrent.futures
 import time
 
 # Related third-party imports
-from pyvis import network as net
 from streamlit_elements import Elements
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
@@ -17,7 +16,6 @@ from nltk.corpus import stopwords
 nltk.download('stopwords')
 
 # Local imports
-import pyvis.network as net
 from langchain_core.prompts import PromptTemplate
 from langchain.chains import LLMChain
 from langchain_anthropic import ChatAnthropic
@@ -30,7 +28,9 @@ from rake_nltk import Rake
 import spacy
 from spacy_entity_linker import EntityLinker
 
+# -------------
 # Constants
+# -------------
 SEARCH_TYPE = "web"
 DATE_RANGE_OPTIONS = [
     "Last 7 Days",
@@ -46,15 +46,23 @@ MAX_ROWS = 250_000
 DF_PREVIEW_ROWS = 100
 
 # Define models
-Opus = "claude-3-opus-20240229"
-Sonnet = "claude-3-sonnet-20240229"
-Haiku = "claude-3-haiku-20240307"
+ANTHROPIC_MODELS = ['claude-3-opus-20240229', 'claude-3-sonnet-20240229','claude-3-haiku-20240307']
+GROQ_MODELS = ['mixtral-8x7b-32768', 'llama3-70b-8192']
+OPENAI_MODELS = ['gpt-4-turbo', 'gpt-3.5-turbo']
+MODELS = GROQ_MODELS + ANTHROPIC_MODELS + OPENAI_MODELS
+LANGUAGES = ["Afrikaans","Albanian","Amharic","Arabic","Armenian","Azerbaijani","Basque","Belarusian","Bengali","Bosnian","Bulgarian","Catalan","Cebuano","Chinese (Simplified)","Chinese (Traditional)","Corsican","Croatian","Czech","Danish","Dutch","English","Esperanto","Estonian","Finnish","French","Frisian","Galician","Georgian","German","Greek","Gujarati","Haitian Creole","Hausa","Hawaiian","Hebrew","Hindi","Hmong","Hungarian","Icelandic","Igbo","Indonesian","Irish","Italian","Japanese","Javanese","Kannada","Kazakh","Khmer","Kinyarwanda","Korean","Kurdish","Kyrgyz","Lao","Latvian","Lithuanian","Luxembourgish","Macedonian","Malagasy","Malay","Malayalam","Maltese","Maori","Marathi","Mongolian","Myanmar (Burmese)","Nepali","Norwegian","Nyanja (Chichewa)","Odia (Oriya)","Pashto","Persian","Polish","Portuguese (Portugal","Punjabi","Romanian","Russian","Samoan","Scots Gaelic","Serbian","Sesotho","Shona","Sindhi","Sinhala (Sinhalese)","Slovak","Slovenian","Somali","Spanish","Sundanese","Swahili","Swedish","Tagalog (Filipino)","Tajik","Tamil","Tatar","Telugu","Thai","Turkish","Turkmen","Ukrainian","Urdu","Uyghur","Uzbek","Vietnamese","Welsh","Xhosa","Yiddish","Yoruba","Zulu"]
+COUNTRIES = ["Afghanistan", "Albania", "Antarctica", "Algeria", "American Samoa", "Andorra", "Angola", "Antigua and Barbuda", "Azerbaijan", "Argentina", "Australia", "Austria", "The Bahamas", "Bahrain", "Bangladesh", "Armenia", "Barbados", "Belgium", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Belize", "Solomon Islands", "Brunei", "Bulgaria", "Myanmar (Burma)", "Burundi", "Cambodia", "Cameroon", "Canada", "Cape Verde", "Central African Republic", "Sri Lanka", "Chad", "Chile", "China", "Christmas Island", "Cocos (Keeling) Islands", "Colombia", "Comoros", "Republic of the Congo", "Democratic Republic of the Congo", "Cook Islands", "Costa Rica", "Croatia", "Cyprus", "Czechia", "Benin", "Denmark", "Dominica", "Dominican Republic", "Ecuador", "El Salvador", "Equatorial Guinea", "Ethiopia", "Eritrea", "Estonia", "South Georgia and the South Sandwich Islands", "Fiji", "Finland", "France", "French Polynesia", "French Southern and Antarctic Lands", "Djibouti", "Gabon", "Georgia", "The Gambia", "Germany", "Ghana", "Kiribati", "Greece", "Grenada", "Guam", "Guatemala", "Guinea", "Guyana", "Haiti", "Heard Island and McDonald Islands", "Vatican City", "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iraq", "Ireland", "Israel", "Italy", "Jamaica", "Japan", "Kazakhstan", "Jordan", "Kenya", "South Korea", "Kuwait", "Kyrgyzstan", "Laos", "Lebanon", "Lesotho", "Latvia", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Mauritania", "Mauritius", "Mexico", "Monaco", "Mongolia", "Moldova", "Montenegro", "Morocco", "Mozambique", "Oman", "Namibia", "Nauru", "Nepal", "Netherlands", "Curacao", "Sint Maarten", "Caribbean Netherlands", "New Caledonia", "Vanuatu", "New Zealand", "Nicaragua", "Niger", "Nigeria", "Niue", "Norfolk Island", "Norway", "Northern Mariana Islands", "United States Minor Outlying Islands", "Federated States of Micronesia", "Marshall Islands", "Palau", "Pakistan", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Pitcairn Islands", "Poland", "Portugal", "Guinea-Bissau", "Timor-Leste", "Qatar", "Romania", "Rwanda", "Saint Helena, Ascension and Tristan da Cunha", "Saint Kitts and Nevis", "Saint Lucia", "Saint Pierre and Miquelon", "Saint Vincent and the Grenadines", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Vietnam", "Slovenia", "Somalia", "South Africa", "Zimbabwe", "Spain", "Suriname", "Eswatini", "Sweden", "Switzerland", "Tajikistan", "Thailand", "Togo", "Tokelau", "Tonga", "Trinidad and Tobago", "United Arab Emirates", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "North Macedonia", "Egypt", "United Kingdom", "Guernsey", "Jersey", "Tanzania", "United States", "Burkina Faso", "Uruguay", "Uzbekistan", "Venezuela", "Wallis and Futuna", "Samoa", "Yemen", "Zambia"]
+
+# -------------
+# Variables
+# -------------
+preferred_countries = ["Germany", "Austria", "Switzerland", "United Kingdom", "United States", "France", "Italy", "Netherlands"]
+preferred_languages = ["German", "English", "French", "Italian", "Dutch"]
 
 # -------------
 # Streamlit App Configuration
 # -------------
 
-# Streamlit App Configuration
 def setup_streamlit():
     """
     Configures Streamlit's page settings and displays the app title and markdown information.
@@ -334,491 +342,76 @@ def show_fetch_data_button(webproperty, search_type, start_date, end_date, selec
 # ---------------------------
 # Entity Extraction Functions
 # ---------------------------
+def handle_api_keys():
+        model = st.selectbox("Choose a model:", MODELS, help=f"""
+        Here's a brief overview of the models available for generating content:
+        
+        - **{GROQ_MODELS}**: These models are free to use and offer fast response times, making them an excellent choice for users looking for quick results. However, they may not always provide the highest quality of text. Among the GROQ models, the first model in this list: **{GROQ_MODELS[0]}** is generally considered the best due to its balance of speed and quality.
+        
+        - **{ANTHROPIC_MODELS}**: The models from Anthropic are known for their superior text quality. However, they require an API key, which can be obtained from [Anthropic's platform](https://console.anthropic.com/settings/keys). Among the Anthropic models, the first model in this list: **{ANTHROPIC_MODELS[0]}**, is considered the best, offering the highest quality text, but is the most costly.
+        
+        - **{OPENAI_MODELS}**: These are the most well-known models in the industry. You can obtain an API key from [OpenAI's platform](https://platform.openai.com/api-keys). Among the OpenAI models, the first model in this list: **{OPENAI_MODELS[0]}**, is considered the best, offering the highest quality text, but is the most costly.
+        
+        **It's important to note that the quality and cost-effectiveness of models can vary greatly, so choose the model wisely and test before creating loads of meta data. Always consider your specific needs and budget when selecting a model.**
+        
+        For the most current information on which model is performing best overall, you can visit the [Chatbot Arena Leaderboard](https://huggingface.co/spaces/lmsys/chatbot-arena-leaderboard) on Hugging Face. This leaderboard provides insights into the performance of various models in real-world scenarios, helping you make an informed decision.
+        """)
+        if model in GROQ_MODELS:
+            llm_client  = Groq(api_key=st.secrets["groq"]["api_key"])
+        elif model in ANTHROPIC_MODELS:
+            llm_client  = Anthropic(api_key=st.secrets["anthropic"]["api_key"])
+        elif model in OPENAI_MODELS:
+            llm_client  = OpenAI(api_key=st.secrets["openai"]["api_key"])
+        return llm_client, model
 
-def extract_topics(llm, queries, num_topics, temperature):
-    topic_generator = EntityGenerator(llm)
-    topics = topic_generator.generate_entities(" ".join(queries), {}, num_topics, temperature)
-    return topics
+def extract_entities_from_queries(llm_client, model, main_queries_df):
+    prompt = f"""
+    You are a specialized assistant trained to extract the main entity or topic from a search query. Your task is to:
+    - Examine the provided search query
+    - Determine the main entity or topic that the query is referring to
+    - If you are unsure about the main entity or topic, return None
+    - Respond with the extracted entity or topic as a string
 
-def extract_main_queries(df, min_clicks):
+    Your response must be in English, but the input query can be in any language.
     """
-    Extracts the main queries for each URL where the main keyword is in the top 5 positions and generates a minimum amount of traffic.
-    Returns a DataFrame with the extracted main queries and their corresponding URLs.
-    """
-    main_queries_df = df[(df['position'] <= 5) & (df['clicks'] >= min_clicks)][['page', 'query']]
-    main_queries_df = main_queries_df.groupby('page').agg({'query': lambda x: x.iloc[0]}).reset_index()
-    main_queries_df.columns = ['URL', 'Main Query']
+
+    def extract_entity(query):
+        if model in ANTHROPIC_MODELS:
+            try:
+                response = llm_client.messages.create(
+                    model=model,
+                    system=prompt,
+                    max_tokens=MAX_TOKEN,
+                    temperature=TEMPERATURE,
+                    messages=[
+                        {"role": "user", "content": query}
+                    ]
+                )
+                result = response.content[0].text
+                return result
+            except Exception as e:
+                print(f"Error: {e}. Retrying in 7 seconds...")
+                time.sleep(7)
+        else:
+            try:
+                response = llm_client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": prompt},
+                        {"role": "user", "content": query}],
+                    max_tokens=MAX_TOKEN,
+                    temperature=TEMPERATURE,
+                )
+                result = response.choices[0].message.content
+                return result  
+            except Exception as e:
+                print(f"Error: {e}. Retrying in 7 seconds...")
+                time.sleep(7)
+
+    main_queries_df['Entity'] = main_queries_df['Main Query'].apply(extract_entity)
     return main_queries_df
-    
-class LLMCaller:
-    @staticmethod
-    def make_llm_call(args):
-        """
-        Makes a call to the Anthropic LLM API with the provided arguments.
-        Args:
-            args (dict): A dictionary containing the following keys:
-                - api_key (str): The Anthropic API key for authentication.
-                - system_prompt (str): The system prompt for the LLM.
-                - prompt (str): The user prompt for the LLM.
-                - model_name (str): The name of the Claude model to use.
-                - max_tokens (int): The maximum number of tokens for the LLM response.
-                - temperature (float): The temperature value for the LLM response.
-        Returns:
-            str: The response from the LLM, or None if an exception occurred.
-        """
-        try:
-            response = anthropic.Anthropic(api_key=args["api_key"]).messages.create(
-                system=args["system_prompt"],
-                messages=[{"role": "user", "content": args["prompt"]}],
-                model=args["model_name"],
-                max_tokens=args["max_tokens"],
-                temperature=args["temperature"],
-                stop_sequences=[],
-            )
-            return response.content[0].text
-        except Exception as e:
-            print(f"Error making LLM call: {e}")
-            return None
 
 
-class EntityGenerator:
-    """
-    A class for generating new entities related to a given topic.
-    """
-    def __init__(self, llm):
-        """
-        Initializes the EntityGenerator instance.
-        Args:
-            llm (LLM): The LLM instance to use for generating entities.
-        """
-        self.llm = llm
-        self.entity_id_counter = 0
-
-    def generate_entities(self, topic: str, existing_entities: Dict[str, str], num_new_entities: int, temperature: float) -> Dict[str, str]:
-        """
-        Generates new entities related to the given topic.
-        Args:
-            topic (str): The topic for which to generate entities.
-            existing_entities (Dict[str, str]): A dictionary of existing entities, where keys are entity IDs and values are entity labels.
-            num_new_entities (int): The number of new entities to generate.
-            temperature (float): The temperature value for the LLM response.
-        Returns:
-            Dict[str, str]: A dictionary of new entities, where keys are entity IDs and values are entity labels.
-        """
-        prompt = PromptTemplate(
-            input_variables=["topic", "existing_entities", "num_new_entities"],
-            template="""Given the topic '{topic}' and the existing entities:\n\n{existing_entities}\n\n
-            Your task is to suggest {num_new_entities} new entities that are semantically related to the topic and existing entities, but not already present in the existing entities.
-            Use ontologies, word embeddings, and similarity measures to expand the entities while narrowing the focus based on the existing entities. Employ a simulated Monte Carlo Tree search as your mental model for coming up with this list. The goal is complete comprehensive semantic depth and breadth for the topic.
-            Example output:
-            machine learning, deep learning, neural networks, computer vision, natural language processing
-            Please provide the output as a comma-separated list of new entities, without any other text or explanations. Your suggestions will contribute to building a comprehensive and insightful semantic map, so aim for high-quality and relevant entities.""",
-        )
-        llm_chain = LLMChain(llm=self.llm, prompt=prompt)
-        new_entities_response = llm_chain.run(
-            topic=topic,
-            existing_entities=", ".join([entity for entity in existing_entities.values()]),
-            num_new_entities=num_new_entities,
-        )
-        new_entities = {}
-        for entity in new_entities_response.split(","):
-            entity = entity.strip()
-            if entity and entity not in existing_entities.values():
-                entity_id = f"e{self.entity_id_counter}"
-                new_entities[entity_id] = entity
-                self.entity_id_counter += 1
-        return new_entities
-
-
-class RelationshipGenerator:
-    """
-    A class for generating relationships between entities.
-    """
-    def __init__(self, llm):
-        """
-        Initializes the RelationshipGenerator instance.
-        Args:
-            llm (LLM): The LLM instance to use for generating relationships.
-        """
-        self.llm = llm
-
-    def generate_batch_relationships(self, topic: str, batch_entities: Dict[str, str], other_entities: Dict[str, str], existing_relationships: Set[tuple]) -> Set[tuple]:
-        """
-        Generates relationships between a batch of entities and other entities.
-        Args:
-            topic (str): The topic for which to generate relationships.
-            batch_entities (Dict[str, str]): A dictionary of entities in the current batch, where keys are entity IDs and values are entity labels.
-            other_entities (Dict[str, str]): A dictionary of other entities, where keys are entity IDs and values are entity labels.
-            existing_relationships (Set[tuple]): A set of existing relationships, where each tuple represents a relationship (source_id, target_id, edge_label).
-        Returns:
-            Set[tuple]: A set of new relationships, where each tuple represents a relationship (source_id, target_id, edge_label).
-        """
-        prompt = PromptTemplate(
-            input_variables=["topic", "batch_entities", "other_entities", "existing_relationships"],
-            template="""Given the topic '{topic}' and the following entities:
-            {batch_entities}
-            Consider the other entities:
-            {other_entities}
-            and the existing relationships:
-            {existing_relationships}
-            Your task is to identify relevant relationships between the given entities and the other entities in the context of the topic.
-            Use domain knowledge to prioritize important connections and provide meaningful edge labels. You must give each entity no less than 2 relationships and no more than 5 relationships for any individual entity. You must return all requested entity relationships.
-            Example output:
-            source_id1,target_id1,edge_label1
-            source_id2,target_id2,edge_label2
-            source_id3,target_id3,edge_label3
-            Please provide the output as a list of relationships and their labels, in the format 'source_id,target_id,edge_label', without any other text or explanations.
-            Focus on identifying the most significant and impactful relationships.""",
-        )
-        llm_chain = LLMChain(llm=self.llm, prompt=prompt)
-        batch_entity_ids = list(batch_entities.keys())
-        existing_batch_relationships = [f"{rel[0]},{rel[1]},{rel[2]}" for rel in existing_relationships if rel[0] in batch_entity_ids]
-        new_relationships_response = llm_chain.run(
-            topic=topic,
-            batch_entities=", ".join([f"{id}: {entity}" for id, entity in batch_entities.items()]),
-            other_entities=", ".join([f"{id}: {entity}" for id, entity in other_entities.items()]),
-            existing_relationships=", ".join(existing_batch_relationships),
-        )
-        new_relationships = set()
-        for rel in new_relationships_response.split("\n"):
-            rel = rel.strip()
-            if "," in rel:
-                parts = rel.split(",")
-                if len(parts) >= 2:
-                    source_id, target_id = parts[:2]
-                    source_id = source_id.strip()
-                    target_id = target_id.strip()
-                    edge_label = parts[2].strip() if len(parts) > 2 else ""
-                    if source_id in batch_entity_ids and target_id in other_entities and (source_id, target_id, edge_label) not in existing_relationships:
-                        new_relationships.add((source_id, target_id, edge_label))
-        return new_relationships
-    
-    def generate_relationships(self, topic: str, entities: Dict[str, str], existing_relationships: Set[tuple], batch_size: int, num_parallel_runs: int) -> Set[tuple]:
-        """
-        Generates relationships between entities in parallel.
-        Args:
-            topic (str): The topic for which to generate relationships.
-            entities (Dict[str, str]): A dictionary of entities, where keys are entity IDs and values are entity labels.
-            existing_relationships (Set[tuple]): A set of existing relationships, where each tuple represents a relationship (source_id, target_id, edge_label).
-            batch_size (int): The size of the batches for parallel processing.
-            num_parallel_runs (int): The number of parallel runs to perform.
-        Returns:
-            Set[tuple]: A set of new relationships, where each tuple represents a relationship (source_id, target_id, edge_label).
-        """
-        new_relationships = set()
-        entity_ids = list(entities.keys())
-        batches = [entity_ids[i:i+batch_size] for i in range(0, len(entity_ids), batch_size)]
-        with concurrent.futures.ThreadPoolExecutor(max_workers=num_parallel_runs) as executor:
-            futures = []
-            for batch_entity_ids in batches:
-                batch_entities = {id: entities[id] for id in batch_entity_ids}
-                other_entities = {id: entities[id] for id in entities if id not in batch_entity_ids}
-                for _ in range(num_parallel_runs):
-                    future = executor.submit(self.generate_batch_relationships, topic, batch_entities, other_entities, existing_relationships)
-                    futures.append(future)
-            for future in concurrent.futures.as_completed(futures):
-                new_relationships.update(future.result())
-        return new_relationships
-
-
-class SemanticMapGenerator:
-    """
-    A class for generating a semantic map based on entities and relationships.
-    """
-    def __init__(self, entity_generator: EntityGenerator, relationship_generator: RelationshipGenerator):
-        """
-        Initializes the SemanticMapGenerator instance.
-        Args:
-            entity_generator (EntityGenerator): The EntityGenerator instance to use for generating entities.
-            relationship_generator (RelationshipGenerator): The RelationshipGenerator instance to use for generating relationships.
-        """
-        self.entity_generator = entity_generator
-        self.relationship_generator = relationship_generator
-        self.entities = {}
-        self.relationships = set()
-
-    def generate_semantic_map(self, topic: str, num_iterations: int, num_parallel_runs: int, num_entities_per_run: int, temperature: float, relationship_batch_size: int) -> Dict[str, Set]:
-        """
-        Generates a semantic map for the given topic.
-        Args:
-            topic (str): The topic for which to generate the semantic map.
-            num_iterations (int): The number of iterations to perform for generating entities and relationships.
-            num_parallel_runs (int): The number of parallel runs to perform for entity and relationship generation.
-            num_entities_per_run (int): The number of new entities to generate in each run.
-            temperature (float): The temperature value for the LLM response.
-            relationship_batch_size (int): The size of the batches for parallel relationship generation.
-        Returns:
-            Dict[str, Set]: A dictionary containing the generated entities and relationships, where the keys are 'entities' and 'relationships', and the values are sets of entities and relationships, respectively.
-        """
-        entities_count = 0
-        relationships_count = 0
-        entities_placeholder = st.empty()
-        relationships_placeholder = st.empty()
-        for iteration in stqdm(range(num_iterations), desc="Generating Semantic Map"):
-            # Parallel entity generation
-            with concurrent.futures.ThreadPoolExecutor(max_workers=num_parallel_runs) as executor:
-                futures = []
-                for _ in range(num_parallel_runs):
-                    future = executor.submit(self.entity_generator.generate_entities, topic, self.entities, num_entities_per_run, temperature)
-                    futures.append(future)
-                progress = stqdm(total=num_parallel_runs, desc="Generating Entities", leave=False)
-                progress.update(1)
-                new_entities = {}
-                for future in concurrent.futures.as_completed(futures):
-                    new_entities.update(future.result())
-                    progress.update(-1)
-                    progress.update(1)
-                    time.sleep(0.1)  # Simulate progress
-                progress.close()
-            # Deduplicate entities
-            self.entities.update(new_entities)
-            entities_count += len(new_entities)
-            # Parallel relationship generation
-            new_relationships = self.relationship_generator.generate_relationships(topic, self.entities, self.relationships, relationship_batch_size, num_parallel_runs)
-            self.relationships.update(new_relationships)
-            relationships_count += len(new_relationships)
-            # Simulate intermediate progress for relationship generation
-            for _ in range(num_parallel_runs):
-                progress = (iteration * num_parallel_runs + _ + 1) / (num_iterations * num_parallel_runs)
-                progress_bar.progress(progress)
-                time.sleep(0.1)
-            # Update metrics
-            entities_placeholder.metric("Total Entities", entities_count)
-            relationships_placeholder.metric("Total Relationships", relationships_count)
-        return {"entities": self.entities, "relationships": self.relationships}
-
-
-def save_semantic_map_to_csv(semantic_map: Dict[str, Set], topic: str):
-    """
-    Saves the generated semantic map to CSV files.
-    Args:
-        semantic_map (Dict[str, Set]): A dictionary containing the generated entities and relationships.
-        topic (str): The topic for which the semantic map was generated.
-    """
-    entities_file = f"{topic}_entities.csv"
-    with open(entities_file, "w") as f:
-        f.write("Id,Label\n")
-        progress = stqdm(semantic_map["entities"].items(), desc="Saving Entities to CSV", total=len(semantic_map["entities"]))
-        for id, entity in progress:
-            f.write(f"{id},{entity}\n")
-            time.sleep(0.01)  # Simulate progress
-    relationships_file = f"{topic}_relationships.csv"
-    with open(relationships_file, "w") as f:
-        f.write("Source,Target,Type\n")
-        progress = stqdm(semantic_map["relationships"], desc="Saving Relationships to CSV", total=len(semantic_map["relationships"]))
-        for relationship in progress:
-            f.write(f"{relationship[0]},{relationship[1]},{relationship[2]}\n")
-            time.sleep(0.01)  # Simulate progress
-
-def merge_similar_nodes(G, similarity_threshold=0.8):
-    """
-    Merges similar nodes in the graph based on their label similarity.
-    Args:
-        G (NetworkX graph): The graph to merge similar nodes in.
-        similarity_threshold (float, optional): The threshold for label similarity. Defaults to 0.8.
-    Returns:
-        NetworkX graph: The graph with similar nodes merged.
-    """
-    merged_nodes = set()
-    for node1 in G.nodes():
-        if node1 not in merged_nodes:
-            for node2 in G.nodes():
-                if node1 != node2 and node2 not in merged_nodes:
-                    label1 = G.nodes[node1]['label']
-                    label2 = G.nodes[node2]['label']
-                    similarity = Levenshtein.ratio(label1, label2)
-                    if similarity >= similarity_threshold:
-                        # Merge nodes
-                        G = nx.contracted_nodes(G, node1, node2, self_loops=False)
-                        merged_nodes.add(node2)
-                        break
-    return G
-
-
-def perform_semantic_research(topic, num_entities, num_relationships):
-    """
-    Performs semantic research on the given topic.
-    Args:
-        topic (str): The topic for which to perform semantic research.
-        num_entities (int): The number of entities to generate.
-        num_relationships (int): The number of relationships to generate.
-    Returns:
-        tuple: A tuple containing the nodes DataFrame, edges DataFrame, and results DataFrame.
-    """
-    print(topic)
-    # Define default values
-    try:
-        num_iterations = 1
-        num_parallel_runs = 10
-        num_entities_per_run = num_entities
-        temperature = 0.5
-        relationship_batch_size = num_relationships
-        model_name = 'claude-3-haiku-20240307'  # Using the Haiku model by default
-
-        # Initialize LLM without passing the api_key
-        llm = ChatAnthropic(temperature=0.2, model_name=model_name, max_tokens=1000)
-
-        status_text = st.empty()
-        # Generate semantic map
-        entity_generator = EntityGenerator(llm)
-        relationship_generator = RelationshipGenerator(llm)
-        semantic_map_generator = SemanticMapGenerator(entity_generator, relationship_generator)
-        with st.spinner("Generating semantic map..."):
-            entities_placeholder = st.empty()
-            relationships_placeholder = st.empty()
-            entities_count = 0
-            relationships_count = 0
-            for iteration in range(num_iterations):
-                # Parallel entity generation
-                with concurrent.futures.ThreadPoolExecutor(max_workers=num_parallel_runs) as executor:
-                    futures = []
-                    for _ in range(num_parallel_runs):
-                        future = executor.submit(entity_generator.generate_entities, topic, semantic_map_generator.entities, num_entities_per_run, temperature)
-                        futures.append(future)
-                    new_entities = {}
-                    for future in concurrent.futures.as_completed(futures):
-                        print(new_entities)
-                        new_entities.update(future.result())
-                # Deduplicate entities
-                semantic_map_generator.entities.update(new_entities)
-                entities_count += len(new_entities)
-                entities_placeholder.metric("Total Entities", entities_count)
-                # Parallel relationship generation
-                new_relationships = relationship_generator.generate_relationships(topic, semantic_map_generator.entities, semantic_map_generator.relationships, relationship_batch_size, num_parallel_runs)
-                semantic_map_generator.relationships.update(new_relationships)
-                relationships_count += len(new_relationships)
-                relationships_placeholder.metric("Total Relationships", relationships_count)
-        status_text.text("Semantic map generated.")
-        # Save semantic map to CSV
-        save_semantic_map_to_csv({"entities": semantic_map_generator.entities, "relationships": semantic_map_generator.relationships}, topic)
-        status_text.text("Semantic map saved to CSV.")
-        # Load the CSV files into DataFrames
-        nodes_df = pd.read_csv(f"{topic}_entities.csv")
-        edges_df = pd.read_csv(f"{topic}_relationships.csv")
-        # Create a directed graph using NetworkX
-        G = nx.DiGraph()
-        # Add nodes to the graph
-        for _, row in nodes_df.iterrows():
-            G.add_node(row['Id'], label=row['Label'])
-        # Add edges to the graph
-        for _, row in edges_df.iterrows():
-            G.add_edge(row['Source'], row['Target'], label=row['Type'])
-        # Merge similar nodes
-        G = merge_similar_nodes(G, similarity_threshold=0.7)
-        with st.spinner("Calculating graph metrics..."):
-            pagerank = nx.pagerank(G)
-            time.sleep(0.1)  # Simulate progress
-            betweenness_centrality = nx.betweenness_centrality(G)
-            time.sleep(0.1)  # Simulate progress
-            closeness_centrality = nx.closeness_centrality(G)
-            time.sleep(0.1)  # Simulate progress
-            eigenvector_centrality = nx.eigenvector_centrality_numpy(G)
-            time.sleep(0.1)  # Simulate progress
-            status_text.text("Graph metrics calculated.")
-        # Perform community detection using Louvain algorithm
-        undirected_G = G.to_undirected()
-        partition = community_louvain.best_partition(undirected_G)
-        # Calculate personalized PageRank for each pillar topic
-        personalized_pagerank = {}
-        for node in G.nodes():
-            if G.nodes[node]['label'].startswith('Pillar:'):
-                personalized_pagerank[node] = nx.pagerank(G, personalization={node: 1})
-
-        # Create a DataFrame to store the results
-        results_df = pd.DataFrame(columns=['Node', 'Label', 'PageRank', 'Betweenness Centrality', 'Closeness Centrality',
-                                           'Eigenvector Centrality', 'Community', 'Personalized PageRank'])
-        # Populate the DataFrame with the results
-        for node in G.nodes():
-            node_label = G.nodes[node]['label']
-            community = partition[node]
-            personalized_scores = {pillar: scores[node] for pillar, scores in personalized_pagerank.items()}
-            new_row = pd.DataFrame({
-                'Node': [node],
-                'Label': [node_label],
-                'PageRank': [pagerank[node]],
-                'Betweenness Centrality': [betweenness_centrality[node]],
-                'Closeness Centrality': [closeness_centrality[node]],
-                'Eigenvector Centrality': [eigenvector_centrality[node]],
-                'Community': [community],
-                'Personalized PageRank': [personalized_scores]
-            })
-            results_df = pd.concat([results_df, new_row], ignore_index=True, sort=False)  # Updated to suppress FutureWarning
-        # Sort the DataFrame by PageRank in descending order
-        results_df = results_df.sort_values('PageRank', ascending=False)
-        status_text.text("Results DataFrame created.")
-        return nodes_df, edges_df, results_df
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return None, None, None
-
-def calculate_centrality_scores(G):
-    pagerank_scores = nx.pagerank(G)
-    betweenness_scores = nx.betweenness_centrality(G)
-    closeness_scores = nx.closeness_centrality(G)
-    return pagerank_scores, betweenness_scores, closeness_scores
-
-def visualize_semantic_map(semantic_map, content_hierarchy_template):
-    G = nx.Graph()
-    for entity_id, entity_label in semantic_map["entities"].items():
-        G.add_node(entity_id, label=entity_label)
-    for source_id, target_id, edge_label in semantic_map["relationships"]:
-        G.add_edge(source_id, target_id, label=edge_label)
-    
-    # Merge similar nodes
-    G = merge_similar_nodes(G)
-    
-    # Perform community detection using Louvain algorithm
-    partition = community_louvain.best_partition(G)
-    
-    # Set node attributes for community and label
-    for node in G.nodes():
-        G.nodes[node]['community'] = str(partition[node])
-        G.nodes[node]['label'] = G.nodes[node]['label']
-    
-    # Set edge attributes for label
-    for edge in G.edges():
-        G.edges[edge]['label'] = G.edges[edge]['label']
-    
-    # Calculate centrality scores
-    pagerank_scores, betweenness_scores, closeness_scores = calculate_centrality_scores(G)
-    
-    # Map entities to pillars based on PageRank scores
-    for pillar in content_hierarchy_template["Pillars"]:
-        pillar["entities"] = [entity for entity, score in pagerank_scores.items() if score >= 0.01]  # Adjust the threshold as needed
-    
-    # Map entities to clusters based on betweenness centrality scores
-    for cluster in content_hierarchy_template["Clusters"]:
-        cluster["entities"] = [entity for entity, score in betweenness_scores.items() if score >= 0.01]  # Adjust the threshold as needed
-    
-    # Map entities to spokes based on closeness centrality scores
-    for spoke in content_hierarchy_template["Spokes"]:
-        spoke["entities"] = [entity for entity, score in closeness_scores.items() if score >= 0.01]  # Adjust the threshold as needed
-    
-    # Create a pyvis network
-    pyvis_graph = net.Network(notebook=True, cdn_resources="in_line")
-    
-    # Add nodes to the pyvis network
-    for node_id, node_data in G.nodes(data=True):
-        pyvis_graph.add_node(node_id, label=node_data['label'], title=node_data['label'], group=node_data['community'])
-    
-    # Add edges to the pyvis network
-    for source, target, edge_data in G.edges(data=True):
-        pyvis_graph.add_edge(source, target, title=edge_data['label'])
-    
-    # Customize the pyvis network layout and appearance
-    pyvis_graph.barnes_hut(overlap=0.5, spring_length=200)
-    pyvis_graph.show_buttons(filter_=['physics'])
-    
-    # Save the pyvis network as an HTML file
-    pyvis_graph.show("semantic_map.html")
-    
-    # Display the HTML file in Streamlit
-    with open("semantic_map.html", "r", encoding="utf-8") as file:
-        html_content = file.read()
-    st.components.v1.html(html_content, height=600)
-    
-    # Display the updated content hierarchy template
-    st.json(content_hierarchy_template)
 # -------------
 # Main Streamlit App Function
 # -------------
@@ -853,30 +446,18 @@ def main():
             start_date, end_date = calc_date_range(date_range_selection)
             selected_dimensions = DIMENSIONS
             min_clicks = show_min_clicks_input()
+            sorted_countries = custom_sort(COUNTRIES, preferred_countries)
+            sorted_languages = custom_sort(LANGUAGES, preferred_languages)
+            country = st.selectbox("Country", sorted_countries)
+            language = st.selectbox("Language", sorted_languages)
             show_fetch_data_button(webproperty, search_type, start_date, end_date, selected_dimensions, min_clicks)
             if 'main_queries_df' in st.session_state and st.session_state.main_queries_df is not None:
                 main_queries_df = st.session_state.main_queries_df
                 main_queries = main_queries_df['Main Query'].tolist()
                 
                 # Generate topics from the main queries
-                num_topics = 10  # Specify the desired number of topics
-                temperature = 0.7  # Specify the temperature for topic generation
-                ANTHROPIC_API_KEY = st.text_input("Anthropic API Key", type="password", help="Your Anthropic API key to authenticate and access the language model.")
-                if ANTHROPIC_API_KEY:
-                    model_name = Sonnet
-                    llm = ChatAnthropic(temperature=0.2, model_name=model_name, max_tokens=1000, api_key=ANTHROPIC_API_KEY)
-                    topics = extract_topics(llm, main_queries, num_topics, temperature)
+                
                     
-                    # Generate relationships between the topics
-                    relationship_generator = RelationshipGenerator(llm)
-                    relationships = relationship_generator.generate_relationships(" ".join(main_queries), topics, set(), 5, 2)
-                    
-                    # Create a semantic map based on the topics and relationships
-                    semantic_map_generator = SemanticMapGenerator(None, relationship_generator)
-                    semantic_map = {"entities": topics, "relationships": relationships}
-                    
-                    # Display the semantic map interactively
-                    visualize_semantic_map(semantic_map)
 
 
 if __name__ == "__main__":

@@ -422,10 +422,12 @@ def extract_entities_from_queries(llm_client, model, fetched_data, country, lang
                     temperature=TEMPERATURE,
                 )
                 result = response.choices[0].message.content
+                st.write(result)
                 return result  
             except Exception as e:
                 print(f"Error: {e}. Retrying in 7 seconds...")
                 time.sleep(7)
+        
         entities = []
         total_queries = len(fetched_data)
         progress_bar = st.progress(0)
@@ -436,7 +438,7 @@ def extract_entities_from_queries(llm_client, model, fetched_data, country, lang
             progress = (i + 1) / total_queries
             progress_bar.progress(progress)
     
-        fetched_data['Entity'] = entities
+        fetched_data['entity'] = entities
         return fetched_data
 
 

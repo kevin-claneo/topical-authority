@@ -347,8 +347,9 @@ def show_fetch_data_button(webproperty, search_type, start_date, end_date, selec
         report = fetch_data_loading(webproperty, search_type, start_date, end_date, selected_dimensions, min_clicks)
         if report is not None:
             st.session_state.fetched_data = report  # Store in session state
-            main_queries_df = extract_main_queries(report, min_clicks)
-            st.session_state.main_queries_df = main_queries_df  # Store in session state
+            return report
+            #main_queries_df = extract_main_queries(report, min_clicks)
+            #st.session_state.main_queries_df = main_queries_df  # Store in session state
 
 
 # ---------------------------
@@ -464,12 +465,13 @@ def main():
             country = st.selectbox("Country", sorted_countries)
             language = st.selectbox("Language", sorted_languages)
             show_fetch_data_button(webproperty, search_type, start_date, end_date, selected_dimensions, min_clicks)
-            if 'main_queries_df' in st.session_state and st.session_state.main_queries_df is not None:
-                main_queries_df = st.session_state.main_queries_df
-                st.write('Before extraction')
-                show_dataframe(main_queries_df)
-                main_queries_df = extract_entities_from_queries(llm_client, model, main_queries_df, country, language)
-                show_dataframe(main_queries_df)
+            show_dataframe(report)
+            #if 'main_queries_df' in st.session_state and st.session_state.main_queries_df is not None:
+             #   main_queries_df = st.session_state.main_queries_df
+              #  st.write('Before extraction')
+               # show_dataframe(main_queries_df)
+                #main_queries_df = extract_entities_from_queries(llm_client, model, main_queries_df, country, language)
+                #show_dataframe(main_queries_df)
                 
                     
 

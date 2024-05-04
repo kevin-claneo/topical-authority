@@ -1,3 +1,5 @@
+##### NEXT Step: Build Knowledge Graph with LLM. Maybe use Langchain?
+
 # Standard library imports
 import streamlit as st
 import datetime

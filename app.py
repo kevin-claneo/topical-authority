@@ -604,13 +604,14 @@ def main():
             show_fetch_data_button(webproperty, search_type, start_date, end_date, selected_dimensions, min_clicks, directory)
             if 'fetched_data' in st.session_state and st.session_state.fetched_data is not None:
                 fetched_data = st.session_state.fetched_data
-                fetched_data = extract_entities_from_queries(llm_client, model, fetched_data, country, language)
-                st.session_state.fetched_data_with_entities = fetched_data
+                show_dataframe(fetched_data)
+                #fetched_data = extract_entities_from_queries(llm_client, model, fetched_data, country, language)
+                #st.session_state.fetched_data_with_entities = fetched_data
                 # Create an instance of RelationshipGenerator
-                relationship_generator = RelationshipGenerator(llm_client, model)
-
+                #relationship_generator = RelationshipGenerator(llm_client, model)
+            
                 # Generate relationships
-                new_relationships = relationship_generator.generate_relationships(entities, existing_relationships, batch_size, num_parallel_runs, country, language)
+                #new_relationships = relationship_generator.generate_relationships(entities, existing_relationships, batch_size, num_parallel_runs, country, language)
                     
 
 
